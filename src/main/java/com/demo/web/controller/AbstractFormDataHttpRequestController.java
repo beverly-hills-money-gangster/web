@@ -2,8 +2,6 @@ package com.demo.web.controller;
 
 import com.demo.web.factory.HttpBodyFactory;
 import com.demo.web.model.HttpContentType;
-
-// TODO rename to Controller
 public abstract class AbstractFormDataHttpRequestController extends HttpRequestController {
 
   public AbstractFormDataHttpRequestController(HttpBodyFactory httpBodyFactory) {

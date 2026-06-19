@@ -12,8 +12,8 @@ public enum HttpContentType {
   HTML("text/html"),
   CSS("text/css"),
   CSV("text/csv"),
+  JAVASCRIPT("text/javascript"),
   XML("application/xml"),
-  JAVASCRIPT("application/javascript"),
   JSON("application/json"),
   YAML("application/x-yaml"),
 

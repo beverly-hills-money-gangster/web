@@ -15,8 +15,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +37,16 @@ public class ServerRunner implements Closeable {
   private final HttpBodyFactory httpBodyFactory;
 
   private final AtomicBoolean alive = new AtomicBoolean(true);
+  private final AtomicBoolean started = new AtomicBoolean(false);
+  private final AtomicReference<ServerSocket> serverSocketReference = new AtomicReference<>();
 
   public void start(int port) throws IOException {
+    if (!started.compareAndSet(false, true)) {
+      throw new IllegalStateException("Can't start server runner twice");
+    }
     portValidator.validate(port);
     try (var serverSocket = new ServerSocket(port)) {
+      serverSocketReference.set(serverSocket);
       LOG.info("Server start {}", serverSocket);
       while (alive.get()) {
         var clientSocket = serverSocket.accept();
@@ -79,9 +87,15 @@ public class ServerRunner implements Closeable {
     LOG.info("Server {} stop", port);
   }
 
-
   @Override
   public void close() {
     alive.set(false);
+    Optional.ofNullable(serverSocketReference.get()).ifPresent(serverSocket -> {
+      try {
+        serverSocket.close();
+      } catch (IOException e) {
+        LOG.error("Can't close server socket {}", serverSocket, e);
+      }
+    });
   }
 }

@@ -1,0 +1,14 @@
+Welcome to the sample text file.
+
+This file contains plain text data.
+It can be opened with any text editor.
+
+Sample items:
+- Apples
+- Bananas
+- Oranges
+
+Contact:
+email@example.com
+
+End of file.

@@ -1,6 +1,5 @@
 package com.demo.web.factory;
 
-import static com.demo.web.util.Constants.CONTENT_TYPE_HEADER;
 import static com.demo.web.util.Constants.DEFAULT_CHARSET;
 import static com.demo.web.util.Constants.NO_CACHE_STORE;
 
@@ -104,7 +103,8 @@ public class HttpResponseFactory {
         return text("File %s not found".formatted(fullFileName), HttpResponseCode.NOT_FOUND);
       }
       var headers = new HttpHeaders();
-      headers.add(CONTENT_TYPE_HEADER, URLConnection.guessContentTypeFromName(fullFileName));
+      headers.addContentType(
+          HttpContentType.get(URLConnection.guessContentTypeFromName(fullFileName)));
       return HttpResponse.builder().code(code)
           .body(HttpResponseBody.builder().stream(in).length(contentLength).build())
           .headers(headers)

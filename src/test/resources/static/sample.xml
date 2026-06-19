@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <user id="1">
+    <name>John Doe</name>
+    <email>john@example.com</email>
+    <age>30</age>
+  </user>
+
+  <user id="2">
+    <name>Jane Smith</name>
+    <email>jane@example.com</email>
+    <age>25</age>
+  </user>
+
+  <user id="3">
+    <name>Bob Johnson</name>
+    <email>bob@example.com</email>
+    <age>40</age>
+  </user>
+</users>
