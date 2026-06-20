@@ -19,7 +19,7 @@ public class HttpRequestFilterChain {
         .collect(Collectors.toCollection(ArrayDeque::new));
   }
 
-  public Optional<HttpResponse> doNext(HttpRequest request) {
+  public HttpResponse doNext(HttpRequest request) {
     var next = filters.poll();
     if (next == null) {
       throw new IllegalStateException("No http request filter left");

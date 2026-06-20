@@ -41,6 +41,17 @@ public class HttpJsonTest extends WebTest {
   }
 
   @Test
+  public void testJsonPostBadContentType() throws JsonProcessingException {
+    var jsonObjectToSend = JsonSamplePojo.createDummy();
+    var jsonToSend = objectMapper.writeValueAsString(jsonObjectToSend);
+    var response = sendRequest(
+        HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString(jsonToSend))
+            .uri(URI.create("http://127.0.0.1:%s/json".formatted(PORT)))
+            .header("Content-Type", "text/plain").build());
+    assertEquals(415, response.statusCode());
+  }
+
+  @Test
   public void testJsonPut() throws JsonProcessingException {
     var jsonObjectToSend = JsonSamplePojo.createDummy();
     var jsonToSend = objectMapper.writeValueAsString(jsonObjectToSend);

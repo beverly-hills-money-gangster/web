@@ -2,6 +2,7 @@ package com.demo.web.model;
 
 import com.demo.web.util.Constants;
 import java.util.Arrays;
+import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -81,11 +82,10 @@ public enum HttpContentType {
     this.type = type + "; charset=" + Constants.DEFAULT_CHARSET.name();
   }
 
-  public static HttpContentType get(final @NonNull String type) {
+  public static Optional<HttpContentType> get(final @NonNull String type) {
     return Arrays.stream(HttpContentType.values())
         .filter(contentType -> contentType.type.startsWith(type.trim()))
-        .findFirst().orElseThrow(
-            () -> new IllegalArgumentException("Can't find content type %s".formatted(type)));
+        .findFirst();
   }
 
   @Getter

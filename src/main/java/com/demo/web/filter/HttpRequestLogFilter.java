@@ -21,7 +21,7 @@ public class HttpRequestLogFilter extends HttpRequestFilter {
   private final int priority = Integer.MIN_VALUE; // should be executed first
 
   @Override
-  public Optional<HttpResponse> filter(HttpRequest request,
+  public HttpResponse filter(HttpRequest request,
       HttpRequestFilterChain chain) {
     var reqId = getRequestId(request);
     long startTime = System.currentTimeMillis();

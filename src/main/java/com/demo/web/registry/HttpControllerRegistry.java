@@ -2,17 +2,23 @@ package com.demo.web.registry;
 
 import com.demo.annotation.Component;
 import com.demo.web.controller.HttpRequestController;
+import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpContentType;
 import com.demo.web.model.HttpRequest;
+import com.demo.web.model.HttpResponseCode;
 import com.demo.web.util.Constants;
 import com.demo.web.validation.HttpRequestHandlersValidator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.io.FilenameUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class HttpControllerRegistry {
+
+  private static final Logger LOG = LoggerFactory.getLogger(HttpControllerRegistry.class);
 
   private final List<HttpRequestController> httpRequestControllers;
 
@@ -22,26 +28,29 @@ public class HttpControllerRegistry {
     this.httpRequestControllers = httpRequestControllers;
   }
 
-  public Optional<HttpRequestController> getHandler(final HttpRequest request) {
+  public HttpRequestController getHandler(final HttpRequest request) {
     var requestContentType = request.getHeaders().getOne(Constants.CONTENT_TYPE_HEADER)
-        .map(HttpContentType::get).orElse(null);
+        .map(contentType -> HttpContentType.get(contentType).orElseThrow(
+            () -> new HTTPProtocolException("Not support type %s".formatted(contentType),
+                HttpResponseCode.UNSUPPORTED_MEDIA_TYPE))).orElse(null);
 
     var candidates = httpRequestControllers.stream()
-        .filter(handler
-            -> handler.getRequiredContentType() == null
-            || requestContentType == handler.getRequiredContentType())
         .filter(httpRequestHandler -> FilenameUtils.wildcardMatch(
             request.getUri().getBaseURI(), httpRequestHandler.getUriPattern()))
         .toList();
 
     if (candidates.isEmpty()) {
-      return Optional.empty();
+      throw new HTTPProtocolException(HttpResponseCode.NOT_FOUND);
     } else if (candidates.size() > 1) {
-      throw new IllegalStateException("Ambiguous HTTP handler situation. Expected 1 handler. Got %s"
-          .formatted(candidates.stream()
+      LOG.error("Ambiguous HTTP controller situation. Expected 1 controller. Check {}",
+          candidates.stream()
               .map(httpRequestHandler -> httpRequestHandler.getClass().getCanonicalName())
-              .collect(Collectors.toSet())));
+              .collect(Collectors.toSet()));
+      throw new HTTPProtocolException(HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
-    return Optional.of(candidates.getFirst());
+    return Optional.of(candidates.getFirst()).filter(
+        handler -> handler.getRequiredContentType() == null
+            || requestContentType == handler.getRequiredContentType()).orElseThrow(
+        () -> new HTTPProtocolException(HttpResponseCode.UNSUPPORTED_MEDIA_TYPE));
   }
 }

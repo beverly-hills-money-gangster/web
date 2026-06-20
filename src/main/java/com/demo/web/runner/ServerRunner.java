@@ -3,11 +3,8 @@ package com.demo.web.runner;
 import static com.demo.web.util.Constants.MAX_IO_READ_TIME_MLS;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.executor.HttpRequestExecutor;
 import com.demo.web.executor.SocketExecutor;
-import com.demo.web.factory.HttpBodyFactory;
-import com.demo.web.model.HttpResponseCode;
 import com.demo.web.reader.HttpRequestReader;
 import com.demo.web.validation.PortValidator;
 import com.demo.web.writer.HttpResponseWriter;
@@ -34,7 +31,6 @@ public class ServerRunner implements Closeable {
   private final HttpResponseWriter httpResponseWriter;
   private final HttpRequestExecutor httpRequestExecutor;
   private final PortValidator portValidator;
-  private final HttpBodyFactory httpBodyFactory;
 
   private final AtomicBoolean alive = new AtomicBoolean(true);
   private final AtomicBoolean started = new AtomicBoolean(false);
@@ -59,20 +55,13 @@ public class ServerRunner implements Closeable {
             boolean keepReading = true;
             while (keepReading) {
               LOG.debug("Keep reading {}", socket);
-              try {
-                var request = httpRequestReader.read(socket.getInputStream());
-                if (request == null) {
-                  LOG.debug("No request read {}", socket);
-                  return;
-                }
-                keepReading = request.isKeepAlive();
-                httpResponseWriter.write(out,
-                    httpRequestExecutor.execute(request, connectionId));
-              } catch (HTTPProtocolException e) {
-                LOG.warn("Protocol error", e);
-                httpResponseWriter.write(out,
-                    httpBodyFactory.text(e, HttpResponseCode.BAD_REQUEST));
+              var request = httpRequestReader.read(socket.getInputStream());
+              if (request == null) {
+                LOG.debug("No request read {}", socket);
+                return;
               }
+              keepReading = request.isKeepAlive();
+              httpResponseWriter.write(out, httpRequestExecutor.execute(request, connectionId));
             }
           } catch (SocketTimeoutException timeoutException) {
             LOG.debug("Read timeout for socket {}", clientSocket, timeoutException);

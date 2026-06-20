@@ -10,6 +10,6 @@ public abstract class HttpRequestFilter {
   // low number - high priority
   protected abstract int getPriority();
 
-  public abstract Optional<HttpResponse> filter(HttpRequest request, HttpRequestFilterChain chain);
+  public abstract HttpResponse filter(HttpRequest request, HttpRequestFilterChain chain);
 
 }

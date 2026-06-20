@@ -13,6 +13,7 @@ import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
+import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.RequestURI;
 import com.demo.web.validation.ContentLenHttpHeaderValidator;
 import java.io.ByteArrayOutputStream;
@@ -87,11 +88,11 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       builder.keepAlive(
           headers.getOne(CONNECTION_HEADER).map("keep-alive"::equalsIgnoreCase).orElse(true));
       return builder.build();
-    } catch (IOException e) {
+    } catch (IOException | HTTPProtocolException e) {
       throw e;
     } catch (Exception e) {
       LOG.debug("Can't read request", e);
-      throw new HTTPProtocolException(e);
+      throw new HTTPProtocolException(e, HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 

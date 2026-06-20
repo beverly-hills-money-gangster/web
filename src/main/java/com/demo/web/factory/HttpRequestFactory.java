@@ -5,6 +5,7 @@ import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpFormRequest;
 import com.demo.web.model.HttpJsonRequest;
 import com.demo.web.model.HttpRequest;
+import com.demo.web.model.HttpResponseCode;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +24,7 @@ public class HttpRequestFactory {
           .readValue(request.getBody(), clazz);
       return new HttpJsonRequest<T>(request, object);
     } catch (JsonProcessingException e) {
-      throw new HTTPProtocolException("Can't read json", e);
+      throw new HTTPProtocolException("Can't read json", e, HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -33,7 +34,8 @@ public class HttpRequestFactory {
     for (String formKeyValuePair : formKeyValuePairs) {
       var keyValue = formKeyValuePair.split("=", 2);
       if (keyValue.length < 2) {
-        throw new HTTPProtocolException("Invalid form data %s".formatted(formKeyValuePair));
+        throw new HTTPProtocolException("Invalid form data %s".formatted(formKeyValuePair),
+            HttpResponseCode.BAD_REQUEST);
       }
       formData.put(keyValue[0], keyValue[1]);
     }

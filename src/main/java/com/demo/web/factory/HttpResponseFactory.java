@@ -4,7 +4,7 @@ import static com.demo.web.util.Constants.DEFAULT_CHARSET;
 import static com.demo.web.util.Constants.NO_CACHE_STORE;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.WebException;
+import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpContentType;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpResponse;
@@ -16,12 +16,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+// TODO if content type mismatch, then return 415
+// TODO use 413 if content is too large
+// TODO maybe add status code to protocol exception
 @Component
 @RequiredArgsConstructor
 public class HttpResponseFactory {
@@ -68,7 +72,8 @@ public class HttpResponseFactory {
               .add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE))
           .build();
     } catch (Exception e) {
-      throw new WebException("Can't generate json", e);
+      throw new HTTPProtocolException("Can't generate json", e,
+          HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -103,12 +108,17 @@ public class HttpResponseFactory {
         return text("File %s not found".formatted(fullFileName), HttpResponseCode.NOT_FOUND);
       }
       var headers = new HttpHeaders();
-      headers.addContentType(
-          HttpContentType.get(URLConnection.guessContentTypeFromName(fullFileName)));
+
+      var contentType = HttpContentType.get(URLConnection.guessContentTypeFromName(fullFileName));
+      headers.addContentType(contentType.orElseThrow(() -> new HTTPProtocolException(
+          "Can't get content type for file %s".formatted(fullFileName),
+          HttpResponseCode.INTERNAL_SERVER_ERROR)));
       return HttpResponse.builder().code(code)
           .body(HttpResponseBody.builder().stream(in).length(contentLength).build())
           .headers(headers)
           .build();
+    } catch (HTTPProtocolException e) {
+      throw e;
     } catch (Exception e) {
       if (in != null) {
         try {
@@ -117,7 +127,8 @@ public class HttpResponseFactory {
           LOG.error("Can't close file {}", fullFileName, e);
         }
       }
-      throw new WebException("Can't get resource %s".formatted(fullFileName), e);
+      throw new HTTPProtocolException("Can't get resource %s".formatted(fullFileName), e,
+          HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 }

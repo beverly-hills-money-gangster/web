@@ -17,9 +17,9 @@ public class GlobalExceptionHandler {
   private final HttpBodyFactory httpBodyFactory;
 
   public HttpResponse handle(final Throwable error) {
-    if (error instanceof HTTPProtocolException) {
-      LOG.warn("Error occurred", error);
-      return httpBodyFactory.text(error, HttpResponseCode.BAD_REQUEST);
+    if (error instanceof HTTPProtocolException httpError) {
+      LOG.warn("Error occurred", httpError);
+      return httpBodyFactory.text(httpError, httpError.getHttpResponseCode());
     } else {
       LOG.error("Error occurred", error);
       return httpBodyFactory.text(error, HttpResponseCode.INTERNAL_SERVER_ERROR);

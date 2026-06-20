@@ -1,7 +1,6 @@
 package com.demo.web.writer;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.WebException;
 import com.demo.web.model.HttpResponse;
 import com.demo.web.model.HttpResponseBody;
 import com.demo.web.util.Constants;
@@ -14,7 +13,7 @@ import org.apache.commons.io.IOUtils;
 public class HttpResponseWriter implements Writer<HttpResponse> {
 
   @Override
-  public void write(OutputStream outputStream, HttpResponse response) {
+  public void write(OutputStream outputStream, HttpResponse response) throws IOException {
     try (response) {
       var startLine = "%s %s %s".formatted(Constants.HTTP_1_1,
           response.getCode().getCode(),
@@ -34,8 +33,6 @@ public class HttpResponseWriter implements Writer<HttpResponse> {
         IOUtils.copy(response.getBody().getStream(), outputStream);
       }
       outputStream.flush();
-    } catch (IOException e) {
-      throw new WebException(e);
     }
   }
 }

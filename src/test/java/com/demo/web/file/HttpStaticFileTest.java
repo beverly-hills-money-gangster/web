@@ -17,6 +17,16 @@ import org.junit.jupiter.api.Test;
 
 public class HttpStaticFileTest extends WebTest {
 
+  @Test
+  public void testGetNotFound() {
+    var response = sendRequest(
+        HttpRequest.newBuilder().GET()
+            .uri(URI.create(
+                ("http://127.0.0.1:%s/resources/static/not_real_file.txt").formatted(PORT)))
+            .build());
+    assertEquals(404, response.statusCode());
+  }
+
 
   @Test
   public void testGetCss() throws IOException {

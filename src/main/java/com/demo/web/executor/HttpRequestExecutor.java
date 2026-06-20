@@ -27,9 +27,7 @@ public abstract class HttpRequestExecutor {
       return executeImpl(() -> {
         try {
           MDC.put(Constants.MDC_CONNECTION_ID, connectionId);
-          var chain = new HttpRequestFilterChain(httpRequestFilters);
-          return chain.doNext(request)
-              .orElseThrow(() -> new IllegalStateException("Not response found"));
+          return new HttpRequestFilterChain(httpRequestFilters).doNext(request);
         } finally {
           MDC.remove(Constants.MDC_CONNECTION_ID);
         }
