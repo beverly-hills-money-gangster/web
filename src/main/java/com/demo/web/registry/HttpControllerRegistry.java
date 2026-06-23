@@ -1,5 +1,7 @@
 package com.demo.web.registry;
 
+import static com.demo.web.util.UriUtil.patternMatch;
+
 import com.demo.annotation.Component;
 import com.demo.web.controller.HttpRequestController;
 import com.demo.web.exception.HTTPProtocolException;
@@ -35,7 +37,7 @@ public class HttpControllerRegistry {
                 HttpResponseCode.UNSUPPORTED_MEDIA_TYPE))).orElse(null);
 
     var candidates = httpRequestControllers.stream()
-        .filter(httpRequestHandler -> FilenameUtils.wildcardMatch(
+        .filter(httpRequestHandler -> patternMatch(
             request.getUri().getBaseURI(), httpRequestHandler.getUriPattern()))
         .toList();
 

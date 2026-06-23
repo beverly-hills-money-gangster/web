@@ -2,6 +2,7 @@ package com.demo.web.model;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.NonNull;
@@ -37,6 +38,10 @@ public class RequestURI {
 
   public Optional<String> getURIParamValue(final @NonNull String paramName) {
     return Optional.ofNullable(params.get(paramName));
+  }
+
+  public Iterable<Entry<String, String>> readAllURIParams() {
+    return params.entrySet();
   }
 
 

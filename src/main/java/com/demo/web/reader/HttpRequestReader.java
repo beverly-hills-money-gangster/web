@@ -9,11 +9,9 @@ import static com.demo.web.util.Constants.MAX_BYTES_TO_READ;
 import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
-import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.RequestURI;
 import com.demo.web.validation.ContentLenHttpHeaderValidator;
 import java.io.ByteArrayOutputStream;
@@ -54,21 +52,20 @@ public class HttpRequestReader implements Reader<HttpRequest> {
           case START_LINE -> {
             var lineSplit = line.split(" ");
             if (lineSplit.length != START_LINE_ELEMENTS) {
-              throw new IllegalArgumentException("Invalid HTTP start-line. See %s".formatted(line));
+              throw new IOException("Invalid HTTP start-line. See %s".formatted(line));
             }
             method = HttpMethod.valueOf(lineSplit[0]);
             builder.method(method).uri(new RequestURI(lineSplit[1]));
             String version = lineSplit[2];
             if (!HTTP_1_1.equals(version)) {
-              throw new IllegalArgumentException(
-                  "Non-supported protocol version. See %s".formatted(version));
+              throw new IOException("Non-supported protocol version. See %s".formatted(version));
             }
             readState = ReadState.HEADERS;
           }
           case HEADERS -> {
             var splitHeader = line.split(":", 2);
             if (splitHeader.length < 2) {
-              throw new IllegalArgumentException("Invalid HTTP header. See %s".formatted(line));
+              throw new IOException("Invalid HTTP header. See %s".formatted(line));
             }
             var headerName = splitHeader[0].trim().toLowerCase(Locale.ENGLISH);
             var headerValue = splitHeader[1].trim();
@@ -88,11 +85,9 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       builder.keepAlive(
           headers.getOne(CONNECTION_HEADER).map("keep-alive"::equalsIgnoreCase).orElse(true));
       return builder.build();
-    } catch (IOException | HTTPProtocolException e) {
-      throw e;
     } catch (Exception e) {
       LOG.debug("Can't read request", e);
-      throw new HTTPProtocolException(e, HttpResponseCode.INTERNAL_SERVER_ERROR);
+      throw e;
     }
   }
 

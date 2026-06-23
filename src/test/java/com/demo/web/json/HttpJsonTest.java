@@ -41,6 +41,18 @@ public class HttpJsonTest extends WebTest {
   }
 
   @Test
+  public void testJsonPostMalformed() {
+    var jsonToSend = "}{";
+    var response = sendRequest(
+        HttpRequest.newBuilder().POST(HttpRequest.BodyPublishers.ofString(jsonToSend))
+            .uri(URI.create("http://127.0.0.1:%s/json".formatted(PORT)))
+            .header("Content-Type", "application/json").build());
+    assertEquals(400, response.statusCode());
+    assertEquals("Can't read json", response.body());
+
+  }
+
+  @Test
   public void testJsonPostBadContentType() throws JsonProcessingException {
     var jsonObjectToSend = JsonSamplePojo.createDummy();
     var jsonToSend = objectMapper.writeValueAsString(jsonObjectToSend);
@@ -49,6 +61,7 @@ public class HttpJsonTest extends WebTest {
             .uri(URI.create("http://127.0.0.1:%s/json".formatted(PORT)))
             .header("Content-Type", "text/plain").build());
     assertEquals(415, response.statusCode());
+    assertEquals("Unsupported Media Type", response.body());
   }
 
   @Test

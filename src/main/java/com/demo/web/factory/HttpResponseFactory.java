@@ -16,8 +16,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Objects;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,7 +60,7 @@ public class HttpResponseFactory {
   }
 
   public HttpResponse text(Throwable t, HttpResponseCode code) {
-    return text(ExceptionUtils.getMessage(t), code);
+    return text(Objects.toString(t.getMessage(), "Error occurred"), code);
   }
 
   public HttpResponse json(Object json, HttpResponseCode code) {

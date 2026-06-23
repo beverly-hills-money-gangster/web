@@ -9,6 +9,8 @@ import lombok.NonNull;
 // TODO add readme
 // TODO add circle ci integration
 // TODO add jitpack integration
+// TODO test URI patterns too
+// TODO test URI request params
 public class WebContainer {
 
   public static Container init(

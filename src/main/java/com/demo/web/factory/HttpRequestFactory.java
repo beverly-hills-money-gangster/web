@@ -22,9 +22,9 @@ public class HttpRequestFactory {
     try {
       T object = objectMapperFactory.create()
           .readValue(request.getBody(), clazz);
-      return new HttpJsonRequest<T>(request, object);
+      return new HttpJsonRequest<>(request, object);
     } catch (JsonProcessingException e) {
-      throw new HTTPProtocolException("Can't read json", e, HttpResponseCode.INTERNAL_SERVER_ERROR);
+      throw new HTTPProtocolException("Can't read json", e, HttpResponseCode.BAD_REQUEST);
     }
   }
 
@@ -34,8 +34,7 @@ public class HttpRequestFactory {
     for (String formKeyValuePair : formKeyValuePairs) {
       var keyValue = formKeyValuePair.split("=", 2);
       if (keyValue.length < 2) {
-        throw new HTTPProtocolException("Invalid form data %s".formatted(formKeyValuePair),
-            HttpResponseCode.BAD_REQUEST);
+        throw new HTTPProtocolException("Invalid form data", HttpResponseCode.BAD_REQUEST);
       }
       formData.put(keyValue[0], keyValue[1]);
     }
