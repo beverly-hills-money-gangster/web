@@ -6,6 +6,7 @@ import static com.demo.web.util.Constants.CONTENT_LEN_HEADER;
 import static com.demo.web.util.Constants.DEFAULT_CHARSET;
 import static com.demo.web.util.Constants.HTTP_1_1;
 import static com.demo.web.util.Constants.MAX_BYTES_TO_READ;
+import static com.demo.web.util.Constants.MAX_IO_READ_TIME_MLS;
 import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
 import com.demo.annotation.Component;
@@ -28,9 +29,8 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 public class HttpRequestReader implements Reader<HttpRequest> {
 
-  private final ContentLenHttpHeaderValidator contentLenHttpHeaderValidator;
-
   private static final Logger LOG = LoggerFactory.getLogger(HttpRequestReader.class);
+  private final ContentLenHttpHeaderValidator contentLenHttpHeaderValidator;
 
   @Override
   public HttpRequest read(final InputStream inputStream) throws IOException {
@@ -42,8 +42,8 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       var readState = ReadState.START_LINE;
       int linesRead = 0;
       HttpMethod method = null;
-      while ((line = readLine(limitedStream))
-          != null) { // TODO why 2 TCP connections open and one of them is empty?
+      // TODO why 2 TCP connections open and one of them is empty?
+      while ((line = readLine(limitedStream)) != null) {
         linesRead++;
         if (StringUtils.isBlank(line)) {
           break;
@@ -84,17 +84,24 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       }
       builder.keepAlive(
           headers.getOne(CONNECTION_HEADER).map("keep-alive"::equalsIgnoreCase).orElse(true));
+      LOG.debug("Bytes read {}", limitedStream.getBytesRead());
       return builder.build();
-    } catch (Exception e) {
-      LOG.debug("Can't read request", e);
+    } catch (IOException e) {
       throw e;
+    } catch (Exception e) {
+      throw new IOException(e);
     }
   }
 
   private static String readLine(LimitedInputStream in) throws IOException {
     var byteArrayOutputStream = new ByteArrayOutputStream();
     int b;
+    long startTimeMls = System.currentTimeMillis();
     while ((b = in.read()) != -1) {
+      if (System.currentTimeMillis() - startTimeMls > MAX_IO_READ_TIME_MLS) {
+        // this might happen if producer is too slow
+        throw new IOException("Read time-out");
+      }
       if (b == '\r') {
         continue;
       } else if (b == '\n') {
@@ -110,7 +117,12 @@ public class HttpRequestReader implements Reader<HttpRequest> {
 
   private static String readBody(int contentLen, LimitedInputStream in) throws IOException {
     var byteArrayOutputStream = new ByteArrayOutputStream();
+    long startTimeMls = System.currentTimeMillis();
     for (int i = 0; i < contentLen; i++) {
+      if (System.currentTimeMillis() - startTimeMls > MAX_IO_READ_TIME_MLS) {
+        // this might happen if producer is too slow
+        throw new IOException("Request body read time-out");
+      }
       byteArrayOutputStream.write((byte) in.read());
     }
     return byteArrayOutputStream.toString(DEFAULT_CHARSET);

@@ -3,12 +3,14 @@ package com.demo.web.reader;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import lombok.Getter;
 
 
 public class LimitedInputStream implements Closeable {
 
   private final InputStream inputStream;
   private final int maxBytesToRead;
+  @Getter
   private int bytesRead;
 
   public LimitedInputStream(InputStream inputStream, int maxBytesToRead) {
@@ -22,7 +24,7 @@ public class LimitedInputStream implements Closeable {
 
   public int read() throws IOException {
     if (bytesRead >= maxBytesToRead) {
-      throw new IllegalStateException("Can't read more than %s bytes".formatted(maxBytesToRead));
+      throw new IOException("Can't read more than %s bytes".formatted(maxBytesToRead));
     }
     int i = inputStream.read();
     bytesRead++;

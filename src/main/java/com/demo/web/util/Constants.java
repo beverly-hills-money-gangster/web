@@ -9,10 +9,8 @@ import java.util.Set;
 public class Constants {
 
   public static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
-  public static final int MAX_CONTENT_LENGTH_BYTES = 1024 * 1024 * 10;
-  public static final int MAX_HEADERS_LENGTH_BYTES = 1024;
-  public static final int MAX_BYTES_TO_READ = MAX_HEADERS_LENGTH_BYTES + MAX_CONTENT_LENGTH_BYTES;
-  public static final int MAX_IO_READ_TIME_MLS = 15_000;
+  public static final int MAX_BYTES_TO_READ =  1024 * 1024 * 10;
+  public static final int MAX_IO_READ_TIME_MLS = 5_000;
   public static final int START_LINE_ELEMENTS = 3;
   public static final String CONTENT_LEN_HEADER = "content-length";
   public static final String CONTENT_TYPE_HEADER = "content-type";

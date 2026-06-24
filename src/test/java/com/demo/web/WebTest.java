@@ -34,6 +34,10 @@ public class WebTest {
     }).start();
   }
 
+  public static <T> T getComponent(Class<T> clazz) {
+    return container.getInstance(clazz);
+  }
+
   @AfterAll
   public static void stopServer() throws InterruptedException {
     Optional.ofNullable(container).ifPresent(Container::close);

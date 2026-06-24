@@ -1,7 +1,7 @@
 package com.demo.web.executor;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.GlobalExceptionHandler;
+import com.demo.web.exception.ExceptionResponseExecutor;
 import com.demo.web.filter.HttpRequestFilter;
 import com.demo.web.model.HttpResponse;
 import java.io.Closeable;
@@ -28,9 +28,10 @@ public class ThreadPoolHttpRequestExecutor extends HttpRequestExecutor implement
           .priority(Thread.NORM_PRIORITY)
           .build());
 
-  public ThreadPoolHttpRequestExecutor(GlobalExceptionHandler globalExceptionHandler,
+  public ThreadPoolHttpRequestExecutor(
+      ExceptionResponseExecutor exceptionResponseExecutor,
       List<HttpRequestFilter> httpRequestFilters) {
-    super(globalExceptionHandler, httpRequestFilters);
+    super(exceptionResponseExecutor, httpRequestFilters);
   }
 
 

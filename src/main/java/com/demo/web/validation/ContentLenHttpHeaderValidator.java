@@ -1,7 +1,6 @@
 package com.demo.web.validation;
 
 import static com.demo.web.util.Constants.CONTENT_LEN_HEADER;
-import static com.demo.web.util.Constants.MAX_CONTENT_LENGTH_BYTES;
 
 import com.demo.annotation.Component;
 import com.demo.web.model.HttpHeaders;
@@ -19,11 +18,6 @@ public class ContentLenHttpHeaderValidator implements Validator<HttpHeaders> {
     if (!StringUtils.isNumeric(contentLengthValue)) {
       throw new IllegalArgumentException(
           "Invalid %s. See: '%s'".formatted(CONTENT_LEN_HEADER, contentLengthValue));
-    }
-    var contentLen = Integer.parseInt(contentLengthValue);
-    if (contentLen > MAX_CONTENT_LENGTH_BYTES) {
-      throw new IllegalArgumentException(
-          "Body is too long. See %s: %s".formatted(CONTENT_LEN_HEADER, contentLen));
     }
   }
 }

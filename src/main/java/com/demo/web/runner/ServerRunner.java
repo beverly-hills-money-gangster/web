@@ -3,7 +3,7 @@ package com.demo.web.runner;
 import static com.demo.web.util.Constants.MAX_IO_READ_TIME_MLS;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.GlobalExceptionHandler;
+import com.demo.web.exception.ExceptionListener;
 import com.demo.web.executor.HttpRequestExecutor;
 import com.demo.web.executor.SocketExecutor;
 import com.demo.web.reader.HttpRequestReader;
@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.SocketTimeoutException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,7 +33,7 @@ public class ServerRunner implements Closeable {
   private final HttpResponseWriter httpResponseWriter;
   private final HttpRequestExecutor httpRequestExecutor;
   private final PortValidator portValidator;
-  private final GlobalExceptionHandler globalExceptionHandler;
+  private final List<ExceptionListener> exceptionListeners;
 
   private final AtomicBoolean alive = new AtomicBoolean(true);
   private final AtomicBoolean started = new AtomicBoolean(false);
@@ -58,7 +59,6 @@ public class ServerRunner implements Closeable {
             var out = socket.getOutputStream();
             boolean keepReading = true;
             while (keepReading) {
-              LOG.debug("Keep reading {}", socket);
               var request = httpRequestReader.read(socket.getInputStream());
               if (request == null) {
                 LOG.debug("No request read {}", socket);
@@ -66,11 +66,12 @@ public class ServerRunner implements Closeable {
               }
               keepReading = request.isKeepAlive();
               httpResponseWriter.write(out, httpRequestExecutor.execute(request, connectionId));
+              LOG.debug("Keep reading {}", socket);
             }
           } catch (SocketTimeoutException timeoutException) {
             LOG.debug("Read timeout for socket {}", clientSocket, timeoutException);
           } catch (Exception e) {
-            LOG.warn("Unexpected exception", e);
+            exceptionListeners.forEach(listener -> listener.listen(e));
           } finally {
             LOG.debug("Close connection {}", socket);
           }

@@ -1,6 +1,6 @@
 package com.demo.web.executor;
 
-import com.demo.web.exception.GlobalExceptionHandler;
+import com.demo.web.exception.ExceptionResponseExecutor;
 import com.demo.web.filter.HttpRequestFilter;
 import com.demo.web.filter.HttpRequestFilterChain;
 import com.demo.web.model.HttpRequest;
@@ -17,7 +17,7 @@ import org.slf4j.MDC;
 @RequiredArgsConstructor
 public abstract class HttpRequestExecutor {
 
-  private final GlobalExceptionHandler globalExceptionHandler;
+  private final ExceptionResponseExecutor exceptionResponseExecutor;
 
   private final List<HttpRequestFilter> httpRequestFilters;
 
@@ -33,9 +33,9 @@ public abstract class HttpRequestExecutor {
         }
       }).get();
     } catch (ExecutionException e) {
-      return globalExceptionHandler.handle(e.getCause());
+      return exceptionResponseExecutor.execute(e.getCause());
     } catch (Exception e) {
-      return globalExceptionHandler.handle(e);
+      return exceptionResponseExecutor.execute(e);
     }
   }
 
