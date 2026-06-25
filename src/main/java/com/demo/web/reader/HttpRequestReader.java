@@ -93,7 +93,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
         builder.body(readBody(contentLen, limitedStream));
       }
       builder.keepAlive(
-          headers.getOne(CONNECTION_HEADER).map("keep-alive"::equalsIgnoreCase).orElse(true));
+          headers.getOne(CONNECTION_HEADER).map(s -> !"close".equals(s)).orElse(true));
       LOG.debug("Bytes read {}", limitedStream.getBytesRead());
       return builder.build();
     } catch (IOException e) {

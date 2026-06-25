@@ -88,6 +88,9 @@ public class ServerRunner implements Closeable {
 
   @Override
   public void close() {
+    if (closed.get()) {
+      return;
+    }
     closed.set(true);
     Optional.ofNullable(serverSocketReference.get()).ifPresent(serverSocket -> {
       try {

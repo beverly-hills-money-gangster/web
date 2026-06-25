@@ -21,6 +21,8 @@ public class ProtocolTest extends WebTest {
 
   // TODO .replace("\n", "\r\n") add separate method
 
+  // TODO add Connection: close test
+
   private static final int MAX_BYTES_TO_READ = 1024;
 
   private static final int MAX_IO_READ_TIME_MLS = 1000;

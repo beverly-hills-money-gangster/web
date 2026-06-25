@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -59,10 +61,22 @@ public class WebTest {
   }
 
   public HttpResponse<String> sendRequest(final HttpRequest request) {
-    try (HttpClient client = HttpClient.newHttpClient()) {
+    try (HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()) {
       return client.send(
           request,
           HttpResponse.BodyHandlers.ofString());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public List<HttpResponse<String>> sendRequests(final List<HttpRequest> requests) {
+    List<HttpResponse<String>> responses = new ArrayList<>();
+    try (HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build()) {
+      for (HttpRequest request : requests) {
+        responses.add(client.send(request, HttpResponse.BodyHandlers.ofString()));
+      }
+      return responses;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
