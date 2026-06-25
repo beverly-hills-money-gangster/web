@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 // TODO if content type mismatch, then return 415
 // TODO use 413 if content is too large
-// TODO maybe add status code to protocol exception
 @Component
 @RequiredArgsConstructor
 public class HttpResponseFactory {

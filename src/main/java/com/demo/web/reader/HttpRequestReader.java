@@ -9,9 +9,11 @@ import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
 import com.demo.annotation.Component;
 import com.demo.web.config.WebConfig;
+import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
+import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.RequestURI;
 import com.demo.web.validation.ContentLenHttpHeaderValidator;
 import java.io.ByteArrayOutputStream;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +42,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
   private final WebConfig webConfig;
 
   @Override
-  public HttpRequest read(final InputStream inputStream) throws IOException {
+  public HttpRequest read(final InputStream inputStream) throws HTTPProtocolException {
     var limitedStream = new LimitedInputStream(inputStream, webConfig.getMaxBytesToRead());
     try {
       var builder = HttpRequest.builder();
@@ -58,24 +61,26 @@ public class HttpRequestReader implements Reader<HttpRequest> {
           case START_LINE -> {
             var lineSplit = line.split(" ");
             if (lineSplit.length != START_LINE_ELEMENTS) {
-              throw new IOException("Invalid HTTP start-line. See %s".formatted(line));
+              throw new HTTPProtocolException("Invalid HTTP start-line", HttpResponseCode.BAD_REQUEST);
             }
             var methodText = lineSplit[0];
             if (!SUPPORTED_METHODS.contains(methodText)) {
-              throw new IOException("Non-supported HTTP method");
+              throw new HTTPProtocolException("Non-supported HTTP method",
+                  HttpResponseCode.NOT_IMPLEMENTED);
             }
             method = HttpMethod.valueOf(methodText);
             builder.method(method).uri(new RequestURI(lineSplit[1]));
             String version = lineSplit[2];
             if (!HTTP_1_1.equals(version)) {
-              throw new IOException("Non-supported protocol version. See %s".formatted(version));
+              throw new HTTPProtocolException(
+                  "Non-supported protocol version", HttpResponseCode.BAD_REQUEST);
             }
             readState = ReadState.HEADERS;
           }
           case HEADERS -> {
             var splitHeader = line.split(":", 2);
             if (splitHeader.length < 2) {
-              throw new IOException("Invalid HTTP header. See %s".formatted(line));
+              throw new HTTPProtocolException("Invalid HTTP header", HttpResponseCode.BAD_REQUEST);
             }
             var headerName = splitHeader[0].trim().toLowerCase(Locale.ENGLISH);
             var headerValue = splitHeader[1].trim();
@@ -96,10 +101,11 @@ public class HttpRequestReader implements Reader<HttpRequest> {
           headers.getOne(CONNECTION_HEADER).map(s -> !"close".equals(s)).orElse(true));
       LOG.debug("Bytes read {}", limitedStream.getBytesRead());
       return builder.build();
-    } catch (IOException e) {
+    } catch (HTTPProtocolException e) {
       throw e;
     } catch (Exception e) {
-      throw new IOException(e);
+      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
+          HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -110,7 +116,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     while ((b = in.read()) != -1) {
       if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
-        throw new IOException("Read time-out");
+        throw new HTTPProtocolException("Read time-out", HttpResponseCode.REQUEST_TIMEOUT);
       }
       if (b == '\r') {
         continue;
@@ -131,7 +137,8 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     for (int i = 0; i < contentLen; i++) {
       if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
-        throw new IOException("Request body read time-out");
+        throw new HTTPProtocolException("Request body read time-out",
+            HttpResponseCode.REQUEST_TIMEOUT);
       }
       byteArrayOutputStream.write((byte) in.read());
     }

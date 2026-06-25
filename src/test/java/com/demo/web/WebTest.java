@@ -3,7 +3,6 @@ package com.demo.web;
 import com.demo.container.Container;
 import com.demo.web.bootstrap.WebContainerBootstrap;
 import com.demo.web.config.DefaultWebConfig;
-import com.demo.web.protocol.ExceptionCaptureListener;
 import com.demo.web.runner.ServerRunner;
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -43,11 +42,6 @@ public class WebTest {
         LOG.error("Server runner error", e);
       }
     }).start();
-  }
-
-  @AfterEach
-  public void clearExceptionCapture() {
-    container.getInstance(ExceptionCaptureListener.class).clear();
   }
 
   public static <T> T getComponent(Class<T> clazz) {

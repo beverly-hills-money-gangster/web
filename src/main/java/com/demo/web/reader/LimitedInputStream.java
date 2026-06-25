@@ -1,5 +1,7 @@
 package com.demo.web.reader;
 
+import com.demo.web.exception.HTTPProtocolException;
+import com.demo.web.model.HttpResponseCode;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,7 +26,8 @@ public class LimitedInputStream implements Closeable {
 
   public int read() throws IOException {
     if (bytesRead >= maxBytesToRead) {
-      throw new IOException("Can't read more than %s bytes".formatted(maxBytesToRead));
+      throw new HTTPProtocolException("Can't read more than %s bytes".formatted(maxBytesToRead),
+          HttpResponseCode.PAYLOAD_TOO_LARGE);
     }
     int i = inputStream.read();
     bytesRead++;

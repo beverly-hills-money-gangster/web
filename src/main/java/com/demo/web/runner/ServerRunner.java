@@ -3,8 +3,11 @@ package com.demo.web.runner;
 import com.demo.annotation.Component;
 import com.demo.web.config.WebConfig;
 import com.demo.web.exception.ExceptionListener;
+import com.demo.web.exception.ExceptionResponseExecutor;
+import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.executor.HttpRequestExecutor;
 import com.demo.web.executor.SocketExecutor;
+import com.demo.web.model.HttpRequest;
 import com.demo.web.reader.HttpRequestReader;
 import com.demo.web.validation.PortValidator;
 import com.demo.web.writer.HttpResponseWriter;
@@ -35,6 +38,7 @@ public class ServerRunner implements Closeable {
   private final PortValidator portValidator;
   private final WebConfig webConfig;
   private final List<ExceptionListener> exceptionListeners;
+  private final ExceptionResponseExecutor exceptionResponseExecutor;
 
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final AtomicBoolean started = new AtomicBoolean(false);
@@ -60,7 +64,13 @@ public class ServerRunner implements Closeable {
             var out = socket.getOutputStream();
             boolean keepReading = true;
             while (keepReading) {
-              var request = httpRequestReader.read(socket.getInputStream());
+              HttpRequest request;
+              try {
+                request = httpRequestReader.read(socket.getInputStream());
+              } catch (HTTPProtocolException e) {
+                httpResponseWriter.write(out, exceptionResponseExecutor.execute(e));
+                break;
+              }
               if (request == null) {
                 LOG.debug("No request read {}", socket);
                 return;

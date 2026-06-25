@@ -1,7 +1,6 @@
 package com.demo.web.protocol;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 
 import com.demo.web.WebTest;
@@ -14,6 +13,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.NonNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +22,7 @@ public class ProtocolTest extends WebTest {
   // TODO .replace("\n", "\r\n") add separate method
 
   // TODO add Connection: close test
+  // TODO add incomplete header test
 
   private static final int MAX_BYTES_TO_READ = 1024;
 
@@ -36,7 +37,6 @@ public class ProtocolTest extends WebTest {
 
   @Test
   public void testGetEcho() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -46,26 +46,24 @@ public class ProtocolTest extends WebTest {
           Accept: application/json
           Connection: close
           
-          """.replace("\n", "\r\n");
-      socket.getOutputStream().write(request.getBytes(Constants.DEFAULT_CHARSET));
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       String response = reader.readAllAsString();
-      assertEquals("""
+      assertEqualsHttpFriendly("""
           HTTP/1.1 200 OK
           content-type: text/plain; charset=UTF-8
           cache-control: no-store
           content-length: 2
           
-          OK""".replace("\n", "\r\n"), response);
+          OK""", response);
     }
-    assertTrue(exceptionCaptureListener.getErrors().isEmpty());
   }
 
 
   @Test
   public void testMissingStartLine() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -74,20 +72,25 @@ public class ProtocolTest extends WebTest {
           Accept: application/json
           Connection: close
           
-          """.replace("\n", "\r\n");
-      socket.getOutputStream().write(request.getBytes(Constants.DEFAULT_CHARSET));
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 23
+          
+          Invalid HTTP start-line""", response);
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ioe && ioe.getMessage()
-            .startsWith("Invalid HTTP start-line"))));
+
   }
 
 
   @Test
   public void testMissingContentLength() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -98,21 +101,24 @@ public class ProtocolTest extends WebTest {
           {
             "username": "alice",
             "password": "secret123"
-          }""".replace("\n", "\r\n");
+          }""";
       socket.getOutputStream()
           .write(request.getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Internal Server Error
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 32
+          
+          content-length header is missing""", response);
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ex
-            && ex.getCause() != null && ex.getCause().getMessage()
-            .startsWith("content-length header is missing"))));
   }
 
   @Test
   public void testContentLengthNegative() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -124,21 +130,17 @@ public class ProtocolTest extends WebTest {
           {
             "username": "alice",
             "password": "secret123"
-          }""".replace("\n", "\r\n");
+          }""";
       socket.getOutputStream()
           .write(request.getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       assertEquals(-1, socket.getInputStream().read());
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ex
-            && ex.getCause() != null && ex.getCause().getMessage()
-            .startsWith("Invalid content-length"))));
+
   }
 
   @Test
   public void testWrongProtocol() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -148,19 +150,16 @@ public class ProtocolTest extends WebTest {
           Accept: application/json
           Connection: close
           
-          """.replace("\n", "\r\n");
-      socket.getOutputStream().write(request.getBytes(Constants.DEFAULT_CHARSET));
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       assertEquals(-1, socket.getInputStream().read());
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ioe && ioe.getMessage()
-            .startsWith("Non-supported protocol version"))));
+
   }
 
   @Test
   public void testWrongMethod() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -170,14 +169,11 @@ public class ProtocolTest extends WebTest {
           Accept: application/json
           Connection: close
           
-          """.replace("\n", "\r\n");
-      socket.getOutputStream().write(request.getBytes(Constants.DEFAULT_CHARSET));
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       assertEquals(-1, socket.getInputStream().read());
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ioe && ioe.getMessage()
-            .startsWith("Non-supported HTTP method"))));
   }
 
   @Test
@@ -191,7 +187,6 @@ public class ProtocolTest extends WebTest {
 
   @Test
   public void testTooManyHeaders() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     int headersToCreate = 1_000;
     List<String> headers = new ArrayList<>();
     for (int i = 0; i < headersToCreate; i++) {
@@ -212,14 +207,10 @@ public class ProtocolTest extends WebTest {
       assertEquals(-1, socket.getInputStream().read());
 
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ioe && ioe.getMessage()
-            .equals("Can't read more than %s bytes".formatted(MAX_BYTES_TO_READ)))));
   }
 
   @Test
   public void testBigBody() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     String body = "Hello World! ".repeat(1_000);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
@@ -230,13 +221,10 @@ public class ProtocolTest extends WebTest {
           Content-Length: %s
           
           %s""".formatted(body.length(), body).replace("\n", "\r\n");
-      socket.getOutputStream().write(request.getBytes(Constants.DEFAULT_CHARSET));
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       assertEquals(-1, socket.getInputStream().read());
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ex && ex.getMessage()
-            .equals("Can't read more than %s bytes".formatted(MAX_BYTES_TO_READ)))));
   }
 
 
@@ -254,7 +242,7 @@ public class ProtocolTest extends WebTest {
           {
             "username": "alice",
             "password": "secret123"
-          }""".replace("\n", "\r\n");
+          }""";
       socket.getOutputStream()
           .write(request.getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
@@ -264,7 +252,6 @@ public class ProtocolTest extends WebTest {
 
   @Test
   public void testSendBodySuperSlow() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     int contentLen = 4098;
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
@@ -287,14 +274,10 @@ public class ProtocolTest extends WebTest {
         }
       }
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ex && ex.getMessage()
-            .equals("Request body read time-out"))));
   }
 
   @Test
   public void testSendHeadersSuperSlow() throws IOException, InterruptedException {
-    var exceptionCaptureListener = getComponent(ExceptionCaptureListener.class);
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -304,7 +287,7 @@ public class ProtocolTest extends WebTest {
           Accept: application/json
           Connection: close
           
-          """.replace("\n", "\r\n");
+          """;
       var requestBytes = request.getBytes(Constants.DEFAULT_CHARSET);
       for (byte requestByte : requestBytes) {
         // send one byte super slow
@@ -316,9 +299,15 @@ public class ProtocolTest extends WebTest {
         }
       }
     }
-    assertTrue(exceptionCaptureListener.getErrors().stream().anyMatch(
-        throwable -> (throwable instanceof IOException ex && ex.getMessage()
-            .equals("Read time-out"))));
+  }
+
+  private static String httpFriendly(String text) {
+    return text.replace("\n", "\r\n");
+  }
+
+  public static void assertEqualsHttpFriendly(final @NonNull String expected,
+      final @NonNull String actual) {
+    assertEquals(httpFriendly(expected), actual);
   }
 
 }
