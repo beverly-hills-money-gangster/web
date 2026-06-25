@@ -4,6 +4,7 @@ import com.demo.annotation.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO get rid of that maybe?
 @Component
 public class LogExceptionListener extends ExceptionListener {
 

@@ -19,6 +19,7 @@ import com.demo.web.validation.ContentLenHttpHeaderValidator;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketTimeoutException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Objects;
@@ -61,7 +62,8 @@ public class HttpRequestReader implements Reader<HttpRequest> {
           case START_LINE -> {
             var lineSplit = line.split(" ");
             if (lineSplit.length != START_LINE_ELEMENTS) {
-              throw new HTTPProtocolException("Invalid HTTP start-line", HttpResponseCode.BAD_REQUEST);
+              throw new HTTPProtocolException("Invalid HTTP start-line",
+                  HttpResponseCode.BAD_REQUEST);
             }
             var methodText = lineSplit[0];
             if (!SUPPORTED_METHODS.contains(methodText)) {
@@ -103,9 +105,16 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       return builder.build();
     } catch (HTTPProtocolException e) {
       throw e;
+    } catch (IllegalArgumentException e) {
+      // TODO rethrow original exception
+      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
+          e, HttpResponseCode.BAD_REQUEST);
+    } catch (SocketTimeoutException e) {
+      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
+          e, HttpResponseCode.REQUEST_TIMEOUT);
     } catch (Exception e) {
       throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
-          HttpResponseCode.INTERNAL_SERVER_ERROR);
+          e, HttpResponseCode.INTERNAL_SERVER_ERROR);
     }
   }
 

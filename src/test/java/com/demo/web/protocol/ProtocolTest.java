@@ -19,11 +19,6 @@ import org.junit.jupiter.api.Test;
 
 public class ProtocolTest extends WebTest {
 
-  // TODO .replace("\n", "\r\n") add separate method
-
-  // TODO add Connection: close test
-  // TODO add incomplete header test
-
   private static final int MAX_BYTES_TO_READ = 1024;
 
   private static final int MAX_IO_READ_TIME_MLS = 1000;
@@ -58,6 +53,36 @@ public class ProtocolTest extends WebTest {
           content-length: 2
           
           OK""", response);
+
+      assertStreamEnded(socket);
+    }
+  }
+
+  @Test
+  public void testMalformedHeader() throws IOException, InterruptedException {
+    try (Socket socket = new Socket("127.0.0.1", PORT)) {
+      socket.setSoTimeout(10_000);
+      String request = """
+          GET /echo HTTP/1.1
+          Host: 127.0.0.1
+          User-Agent
+          Accept: application/json
+          Connection: close
+          
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
+      Thread.sleep(500); // wait until server reacts
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 19
+          
+          Invalid HTTP header""", response);
+
+      assertStreamEnded(socket);
     }
   }
 
@@ -84,6 +109,7 @@ public class ProtocolTest extends WebTest {
           content-length: 23
           
           Invalid HTTP start-line""", response);
+      assertStreamEnded(socket);
     }
 
   }
@@ -103,17 +129,18 @@ public class ProtocolTest extends WebTest {
             "password": "secret123"
           }""";
       socket.getOutputStream()
-          .write(request.getBytes(Constants.DEFAULT_CHARSET));
+          .write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
       BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
       String response = reader.readAllAsString();
       assertEqualsHttpFriendly("""
-          HTTP/1.1 400 Internal Server Error
+          HTTP/1.1 400 Bad Request
           content-type: text/plain; charset=UTF-8
           cache-control: no-store
           content-length: 32
           
           content-length header is missing""", response);
+      assertStreamEnded(socket);
     }
   }
 
@@ -132,9 +159,18 @@ public class ProtocolTest extends WebTest {
             "password": "secret123"
           }""";
       socket.getOutputStream()
-          .write(request.getBytes(Constants.DEFAULT_CHARSET));
+          .write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 23
+          
+          Negative content-length""", response);
+      assertStreamEnded(socket);
     }
 
   }
@@ -153,7 +189,16 @@ public class ProtocolTest extends WebTest {
           """;
       socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 30
+          
+          Non-supported protocol version""", response);
+      assertStreamEnded(socket);
     }
 
   }
@@ -172,7 +217,16 @@ public class ProtocolTest extends WebTest {
           """;
       socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 501 Not Implemented
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 25
+          
+          Non-supported HTTP method""", response);
+      assertStreamEnded(socket);
     }
   }
 
@@ -181,7 +235,16 @@ public class ProtocolTest extends WebTest {
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       Thread.sleep(MAX_IO_READ_TIME_MLS + 1_000); // read timeout on server side
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 408 Request Timeout
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 14
+          
+          Read timed out""", response);
+      assertStreamEnded(socket);
     }
   }
 
@@ -202,10 +265,19 @@ public class ProtocolTest extends WebTest {
           
           """.replace("\n", "\r\n")
           .formatted(String.join("\r\n", headers));
-      socket.getOutputStream().write(requestMissingStartLine.getBytes(Constants.DEFAULT_CHARSET));
-      Thread.sleep(500);
-      assertEquals(-1, socket.getInputStream().read());
-
+      socket.getOutputStream()
+          .write(httpFriendly(requestMissingStartLine).getBytes(Constants.DEFAULT_CHARSET));
+      Thread.sleep(500); // wait until server reacts
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 413 Payload Too Large
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 31
+          
+          Can't read more than %s bytes""".formatted(MAX_BYTES_TO_READ), response);
+      assertStreamEnded(socket);
     }
   }
 
@@ -223,7 +295,16 @@ public class ProtocolTest extends WebTest {
           %s""".formatted(body.length(), body).replace("\n", "\r\n");
       socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 413 Payload Too Large
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 31
+          
+          Can't read more than %s bytes""".formatted(MAX_BYTES_TO_READ), response);
+      assertStreamEnded(socket);
     }
   }
 
@@ -237,22 +318,31 @@ public class ProtocolTest extends WebTest {
           POST /echo HTTP/1.1
           Host: 127.0.0.1
           Content-Type: application/json
-          Content-Length: 4098
+          Content-Length: 512
           
           {
             "username": "alice",
             "password": "secret123"
           }""";
       socket.getOutputStream()
-          .write(request.getBytes(Constants.DEFAULT_CHARSET));
+          .write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       Thread.sleep(500); // wait until server reacts
-      assertEquals(-1, socket.getInputStream().read());
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 408 Request Timeout
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 14
+          
+          Read timed out""", response);
+      assertStreamEnded(socket);
     }
   }
 
   @Test
   public void testSendBodySuperSlow() throws IOException, InterruptedException {
-    int contentLen = 4098;
+    int contentLen = 100;
     try (Socket socket = new Socket("127.0.0.1", PORT)) {
       socket.setSoTimeout(10_000);
       String request = """
@@ -263,7 +353,7 @@ public class ProtocolTest extends WebTest {
           
           """.formatted(contentLen).replace("\n", "\r\n");
       socket.getOutputStream()
-          .write(request.getBytes(Constants.DEFAULT_CHARSET));
+          .write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
       for (int i = 0; i < contentLen; i++) {
         // send one byte super slow
         Thread.sleep(500);
@@ -288,7 +378,7 @@ public class ProtocolTest extends WebTest {
           Connection: close
           
           """;
-      var requestBytes = request.getBytes(Constants.DEFAULT_CHARSET);
+      var requestBytes = httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET);
       for (byte requestByte : requestBytes) {
         // send one byte super slow
         Thread.sleep(500);
@@ -299,6 +389,10 @@ public class ProtocolTest extends WebTest {
         }
       }
     }
+  }
+
+  private void assertStreamEnded(Socket socket) throws IOException {
+    assertEquals(-1, socket.getInputStream().read());
   }
 
   private static String httpFriendly(String text) {
