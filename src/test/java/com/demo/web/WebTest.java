@@ -1,15 +1,21 @@
 package com.demo.web;
 
 import com.demo.container.Container;
-import com.demo.web.json.JsonController;
+import com.demo.web.bootstrap.WebContainerBootstrap;
+import com.demo.web.config.DefaultWebConfig;
+import com.demo.web.protocol.ExceptionCaptureListener;
 import com.demo.web.runner.ServerRunner;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +29,10 @@ public class WebTest {
 
   @BeforeAll
   public static void startServer() {
-    container = WebContainer.init(JsonController.class, "enableStaticFiles");
+    container = WebContainer.init(
+        WebContainerBootstrap.builder().source(WebTest.class)
+            .decorators(Map.of(DefaultWebConfig.class, Mockito::spy))
+            .profiles(Set.of("enableStaticFiles")).build());
     var serverRunner = container.getInstance(ServerRunner.class);
     new Thread(() -> {
       try {
@@ -32,6 +41,11 @@ public class WebTest {
         LOG.error("Server runner error", e);
       }
     }).start();
+  }
+
+  @AfterEach
+  public void clearExceptionCapture() {
+    container.getInstance(ExceptionCaptureListener.class).clear();
   }
 
   public static <T> T getComponent(Class<T> clazz) {

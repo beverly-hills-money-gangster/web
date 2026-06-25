@@ -26,8 +26,4 @@ public class HTTPProtocolException extends RuntimeException {
     this.httpResponseCode = httpResponseCode;
   }
 
-  public HTTPProtocolException(Throwable cause, @NonNull HttpResponseCode httpResponseCode) {
-    super(cause);
-    this.httpResponseCode = httpResponseCode;
-  }
 }

@@ -17,4 +17,8 @@ public class ExceptionCaptureListener extends ExceptionListener {
     errors.add(e);
   }
 
+  public void clear() {
+    errors.clear();
+  }
+
 }

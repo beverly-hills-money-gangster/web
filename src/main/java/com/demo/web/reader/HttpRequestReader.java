@@ -5,11 +5,10 @@ import static com.demo.web.util.Constants.CONNECTION_HEADER;
 import static com.demo.web.util.Constants.CONTENT_LEN_HEADER;
 import static com.demo.web.util.Constants.DEFAULT_CHARSET;
 import static com.demo.web.util.Constants.HTTP_1_1;
-import static com.demo.web.util.Constants.MAX_BYTES_TO_READ;
-import static com.demo.web.util.Constants.MAX_IO_READ_TIME_MLS;
 import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
 import com.demo.annotation.Component;
+import com.demo.web.config.WebConfig;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
@@ -18,7 +17,10 @@ import com.demo.web.validation.ContentLenHttpHeaderValidator;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -29,12 +31,16 @@ import org.slf4j.LoggerFactory;
 @RequiredArgsConstructor
 public class HttpRequestReader implements Reader<HttpRequest> {
 
+  private static final Set<String> SUPPORTED_METHODS
+      = Arrays.stream(HttpMethod.values()).map(Enum::name).collect(Collectors.toSet());
+
   private static final Logger LOG = LoggerFactory.getLogger(HttpRequestReader.class);
   private final ContentLenHttpHeaderValidator contentLenHttpHeaderValidator;
+  private final WebConfig webConfig;
 
   @Override
   public HttpRequest read(final InputStream inputStream) throws IOException {
-    var limitedStream = new LimitedInputStream(inputStream, MAX_BYTES_TO_READ);
+    var limitedStream = new LimitedInputStream(inputStream, webConfig.getMaxBytesToRead());
     try {
       var builder = HttpRequest.builder();
       var headers = new HttpHeaders();
@@ -54,7 +60,11 @@ public class HttpRequestReader implements Reader<HttpRequest> {
             if (lineSplit.length != START_LINE_ELEMENTS) {
               throw new IOException("Invalid HTTP start-line. See %s".formatted(line));
             }
-            method = HttpMethod.valueOf(lineSplit[0]);
+            var methodText = lineSplit[0];
+            if (!SUPPORTED_METHODS.contains(methodText)) {
+              throw new IOException("Non-supported HTTP method");
+            }
+            method = HttpMethod.valueOf(methodText);
             builder.method(method).uri(new RequestURI(lineSplit[1]));
             String version = lineSplit[2];
             if (!HTTP_1_1.equals(version)) {
@@ -93,12 +103,12 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     }
   }
 
-  private static String readLine(LimitedInputStream in) throws IOException {
+  private String readLine(LimitedInputStream in) throws IOException {
     var byteArrayOutputStream = new ByteArrayOutputStream();
     int b;
     long startTimeMls = System.currentTimeMillis();
     while ((b = in.read()) != -1) {
-      if (System.currentTimeMillis() - startTimeMls > MAX_IO_READ_TIME_MLS) {
+      if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
         throw new IOException("Read time-out");
       }
@@ -115,11 +125,11 @@ public class HttpRequestReader implements Reader<HttpRequest> {
         : byteArrayOutputStream.toString(DEFAULT_CHARSET);
   }
 
-  private static String readBody(int contentLen, LimitedInputStream in) throws IOException {
+  private String readBody(int contentLen, LimitedInputStream in) throws IOException {
     var byteArrayOutputStream = new ByteArrayOutputStream();
     long startTimeMls = System.currentTimeMillis();
     for (int i = 0; i < contentLen; i++) {
-      if (System.currentTimeMillis() - startTimeMls > MAX_IO_READ_TIME_MLS) {
+      if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
         throw new IOException("Request body read time-out");
       }

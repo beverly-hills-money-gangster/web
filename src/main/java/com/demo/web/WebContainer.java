@@ -2,6 +2,8 @@ package com.demo.web;
 
 import com.demo.container.Container;
 import com.demo.container.ContainerInitializer;
+import com.demo.web.bootstrap.WebContainerBootstrap;
+import java.util.Set;
 import lombok.NonNull;
 
 // TODO add cookies
@@ -9,21 +11,17 @@ import lombok.NonNull;
 // TODO add readme
 // TODO add circle ci integration
 // TODO add jitpack integration
-// TODO test URI patterns too
-// TODO test URI request params
 public class WebContainer {
 
-  public static Container init(
-      final @NonNull Class<?> source,
-      final @NonNull String... profiles) {
-    return new ContainerInitializer(getWebProfiles(profiles)).init(WebContainer.class, source);
+  public static Container init(final @NonNull WebContainerBootstrap bootstrap) {
+    var initializer = new ContainerInitializer(bootstrap.getProfiles().toArray(String[]::new));
+    bootstrap.getDecorators().forEach(initializer::addDecorator);
+    return initializer.init(WebContainer.class, bootstrap.getSource());
   }
 
-  private static String[] getWebProfiles(final @NonNull String[] profiles) {
-    // copy all profiles + add default
-    var newProfiles = new String[profiles.length + 1];
-    System.arraycopy(profiles, 0, newProfiles, 0, profiles.length);
-    newProfiles[newProfiles.length - 1] = "default";
-    return newProfiles;
+  public static Container init(final Class<?> source, Set<String> profiles) {
+    return init(WebContainerBootstrap.builder().source(source).profiles(profiles).build());
   }
+
+
 }
