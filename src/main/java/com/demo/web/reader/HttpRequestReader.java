@@ -107,7 +107,6 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     } catch (HTTPProtocolException e) {
       throw e;
     } catch (IllegalArgumentException e) {
-      // TODO rethrow original exception
       throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
           e, HttpResponseCode.BAD_REQUEST);
     } catch (SocketTimeoutException e) {
