@@ -13,6 +13,7 @@ import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
+import com.demo.web.model.HttpRequestHeaders;
 import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.RequestURI;
 import com.demo.web.validation.ContentLenHttpHeaderValidator;
@@ -47,7 +48,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     var limitedStream = new LimitedInputStream(inputStream, webConfig.getMaxBytesToRead());
     try {
       var builder = HttpRequest.builder();
-      var headers = new HttpHeaders();
+      var headers = new HttpRequestHeaders();
       String line;
       var readState = ReadState.START_LINE;
       int linesRead = 0;

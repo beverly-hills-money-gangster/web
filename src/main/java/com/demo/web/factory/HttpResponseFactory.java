@@ -6,10 +6,10 @@ import static com.demo.web.util.Constants.NO_CACHE_STORE;
 import com.demo.annotation.Component;
 import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.model.HttpContentType;
-import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpResponse;
 import com.demo.web.model.HttpResponseBody;
 import com.demo.web.model.HttpResponseCode;
+import com.demo.web.model.HttpResponseHeaders;
 import com.demo.web.util.Constants;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,16 +17,11 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Objects;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-// TODO if content type mismatch, then return 415
-// TODO use 413 if content is too large
 @Component
 @RequiredArgsConstructor
 public class HttpResponseFactory {
@@ -40,21 +35,23 @@ public class HttpResponseFactory {
   }
 
   public HttpResponse redirect(String to) {
+    var headers = new HttpResponseHeaders();
+    headers.add("location", to);
+    headers.add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE);
     return HttpResponse.builder().code(HttpResponseCode.MOVED_PERMANENTLY)
-        .headers(new HttpHeaders()
-            .add("location", to)
-            .add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE))
+        .headers(headers)
         .build();
   }
 
   public HttpResponse text(String text, HttpResponseCode code) {
     var textBytes = text.getBytes(DEFAULT_CHARSET);
+    var headers = new HttpResponseHeaders();
+    headers.addContentType(HttpContentType.TEXT);
+    headers.add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE);
     return HttpResponse.builder().code(code)
         .body(HttpResponseBody.builder().stream(new ByteArrayInputStream(textBytes))
             .length(textBytes.length).build())
-        .headers(new HttpHeaders()
-            .addContentType(HttpContentType.TEXT)
-            .add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE))
+        .headers(headers)
         .build();
   }
 
@@ -64,13 +61,15 @@ public class HttpResponseFactory {
 
   public HttpResponse json(Object json, HttpResponseCode code) {
     try {
+      var headers = new HttpResponseHeaders();
+      headers.addContentType(HttpContentType.JSON);
+      headers.add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE);
       byte[] jsonBytes = objectMapperFactory.create().writeValueAsString(json)
           .getBytes(DEFAULT_CHARSET);
       return HttpResponse.builder().code(code)
           .body(HttpResponseBody.builder().stream(new ByteArrayInputStream(jsonBytes))
               .length(jsonBytes.length).build())
-          .headers(new HttpHeaders().addContentType(HttpContentType.JSON)
-              .add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE))
+          .headers(headers)
           .build();
     } catch (Exception e) {
       throw new HTTPProtocolException("Can't generate json", e,
@@ -80,11 +79,13 @@ public class HttpResponseFactory {
 
   public HttpResponse html(String html, HttpResponseCode code) {
     var htmlBytes = html.getBytes(DEFAULT_CHARSET);
+    var headers = new HttpResponseHeaders();
+    headers.addContentType(HttpContentType.HTML);
+    headers.add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE);
     return HttpResponse.builder().code(code)
         .body(HttpResponseBody.builder().stream(new ByteArrayInputStream(htmlBytes))
             .length(htmlBytes.length).build())
-        .headers(new HttpHeaders().addContentType(HttpContentType.HTML)
-            .add(Constants.CACHE_CONTROL_HEADER, NO_CACHE_STORE))
+        .headers(headers)
         .build();
   }
 
@@ -108,8 +109,7 @@ public class HttpResponseFactory {
       if (in == null) {
         return text("File %s not found".formatted(fullFileName), HttpResponseCode.NOT_FOUND);
       }
-      var headers = new HttpHeaders();
-
+      var headers = new HttpResponseHeaders();
       var contentType = HttpContentType.get(URLConnection.guessContentTypeFromName(fullFileName));
       headers.addContentType(contentType.orElseThrow(() -> new HTTPProtocolException(
           "Can't get content type for file %s".formatted(fullFileName),

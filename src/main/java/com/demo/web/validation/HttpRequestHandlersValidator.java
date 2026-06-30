@@ -21,5 +21,6 @@ public class HttpRequestHandlersValidator implements Validator<List<HttpRequestC
         );
       }
     });
+    // TODO check that one pattern doesn't include another
   }
 }

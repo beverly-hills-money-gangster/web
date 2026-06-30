@@ -10,7 +10,7 @@ public class HttpRequest {
 
   private final RequestURI uri;
   private final HttpMethod method;
-  private final HttpHeaders headers;
+  private final HttpRequestHeaders headers;
   private final String body;
   private final boolean keepAlive;
 

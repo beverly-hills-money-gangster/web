@@ -11,31 +11,39 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @ToString
-public class HttpHeaders implements HttpHeadersReader {
+public class HttpHeaders {
 
   private final Map<String, Set<String>> headers = new HashMap<>();
 
-  public HttpHeaders add(@NonNull final String header, @NonNull final String value) {
-    headers.computeIfAbsent(header.toLowerCase(Locale.ENGLISH), (val) -> new HashSet<>())
+  public void add(@NonNull final String header, @NonNull final String value) {
+    headers.computeIfAbsent(header.toLowerCase(Locale.ENGLISH), (_) -> new HashSet<>())
         .add(value);
-    return this;
   }
 
-  public HttpHeaders addContentType(HttpContentType contentType) {
-    return add(Constants.CONTENT_TYPE_HEADER, contentType.getType());
+  public void remove(@NonNull final String header) {
+    headers.remove(header);
   }
 
-  @Override
+  public void replace(@NonNull final String header, @NonNull final Set<String> values) {
+    headers.replace(header, values);
+  }
+
+  public void replace(@NonNull final String header, String value) {
+    headers.replace(header, Set.of(value));
+  }
+
+  public void addContentType(HttpContentType contentType) {
+    add(Constants.CONTENT_TYPE_HEADER, contentType.getType());
+  }
+
   public Set<String> get(final @NonNull String header) {
     return headers.get(header.toLowerCase(Locale.ENGLISH));
   }
 
-  @Override
   public Iterable<Map.Entry<String, Set<String>>> readHeaders() {
     return headers.entrySet();
   }
 
-  @Override
   public Optional<String> getOne(final @NonNull String header) {
     var values = get(header);
     if (values == null || values.isEmpty()) {

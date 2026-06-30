@@ -15,11 +15,8 @@ public class HttpResponse implements Closeable {
 
   private final HttpResponseCode code;
 
-  private final HttpHeaders headers;
+  private final HttpResponseHeaders headers;
 
-  public HttpHeadersReader getHeaders() {
-    return headers;
-  }
 
   @Override
   public String toString() {

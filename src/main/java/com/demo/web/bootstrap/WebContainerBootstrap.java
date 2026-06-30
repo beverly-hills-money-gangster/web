@@ -13,8 +13,8 @@ import lombok.NonNull;
 @Builder
 public class WebContainerBootstrap {
 
-  private @NonNull
-  final Class<?> source;
+  @NonNull
+  private final Class<?> source;
   @Builder.Default
   private final Map<Class<?>, Decorator> decorators = new HashMap<>();
   @Builder.Default
