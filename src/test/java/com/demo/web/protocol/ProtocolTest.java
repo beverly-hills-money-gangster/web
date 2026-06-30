@@ -495,13 +495,4 @@ public class ProtocolTest extends WebTest {
     assertEquals(-1, socket.getInputStream().read());
   }
 
-  private static String httpFriendly(String text) {
-    return text.replace("\n", "\r\n");
-  }
-
-  public static void assertEqualsHttpFriendly(final @NonNull String expected,
-      final @NonNull String actual) {
-    assertEquals(httpFriendly(expected), actual);
-  }
-
 }

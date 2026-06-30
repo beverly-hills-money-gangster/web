@@ -21,7 +21,7 @@ public class HttpCookieTest extends WebTest {
     var response = sendRequest(
         HttpRequest.newBuilder().GET()
             .uri(URI.create("http://127.0.0.1:%s/cookie".formatted(PORT)))
-            .header("Cookie", "spongebob=pineapple; patric=rock") // multiple cookies in one line
+            .header("Cookie", "spongebob=pineapple; patrick=rock") // multiple cookies in one line
             .header("cookie", "sandy=tank") // one cookie lowercased
             .build());
 
@@ -31,7 +31,7 @@ public class HttpCookieTest extends WebTest {
 
     assertEquals(3, echoCookies.size());
     assertEquals(Map.of("spongebob", "pineapple",
-            "patric", "rock",
+            "patrick", "rock",
             "sandy", "tank"),
         echoCookies);
     assertEquals(200, response.statusCode());

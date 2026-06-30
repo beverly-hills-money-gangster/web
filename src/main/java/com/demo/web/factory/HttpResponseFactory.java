@@ -11,12 +11,17 @@ import com.demo.web.model.HttpResponseBody;
 import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.HttpResponseHeaders;
 import com.demo.web.util.Constants;
+import com.github.mustachejava.Mustache;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.Map;
 import java.util.Objects;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +79,18 @@ public class HttpResponseFactory {
     } catch (Exception e) {
       throw new HTTPProtocolException("Can't generate json", e,
           HttpResponseCode.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  public HttpResponse html(
+      final @NonNull Mustache mustache,
+      final @NonNull Map<String, Object> context,
+      final @NonNull HttpResponseCode code) {
+    try (Writer writer = new StringWriter()) {
+      mustache.execute(writer, context).flush();
+      return html(writer.toString(), code);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 

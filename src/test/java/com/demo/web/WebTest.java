@@ -1,5 +1,7 @@
 package com.demo.web;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.demo.container.Container;
 import com.demo.web.bootstrap.WebContainerBootstrap;
 import com.demo.web.config.DefaultWebConfig;
@@ -13,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import lombok.NonNull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -74,6 +77,15 @@ public class WebTest {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static String httpFriendly(String text) {
+    return text.replace("\n", "\r\n");
+  }
+
+  public static void assertEqualsHttpFriendly(final @NonNull String expected,
+      final @NonNull String actual) {
+    assertEquals(httpFriendly(expected), actual);
   }
 
 }
