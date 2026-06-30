@@ -16,6 +16,8 @@ import java.util.List;
 import lombok.NonNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class ProtocolTest extends WebTest {
 
@@ -53,6 +55,104 @@ public class ProtocolTest extends WebTest {
           content-length: 2
           
           OK""", response);
+
+      assertStreamEnded(socket);
+    }
+  }
+
+  @Test
+  public void testMissingCookieName() throws IOException, InterruptedException {
+    try (Socket socket = new Socket("127.0.0.1", PORT)) {
+      socket.setSoTimeout(10_000);
+      String request = """
+          GET /echo HTTP/1.1
+          Host: 127.0.0.1
+          User-Agent: MyApp/1.0
+          Accept: application/json
+          Cookie: =value
+          Connection: close
+          
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
+      Thread.sleep(500); // wait until server reacts
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 12
+          
+          Blank cookie""", response);
+
+      assertStreamEnded(socket);
+    }
+  }
+
+  @Test
+  public void testMissingCookieValue() throws IOException, InterruptedException {
+    try (Socket socket = new Socket("127.0.0.1", PORT)) {
+      socket.setSoTimeout(10_000);
+      String request = """
+          GET /echo HTTP/1.1
+          Host: 127.0.0.1
+          User-Agent: MyApp/1.0
+          Accept: application/json
+          Cookie: sessionid=
+          Connection: close
+          
+          """;
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
+      Thread.sleep(500); // wait until server reacts
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 14
+          
+          Invalid cookie""", response);
+
+      assertStreamEnded(socket);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "Cookie: sess ion=123",
+      "Cookie: sess?ion=123",
+      "Cookie: sess{ion=123",
+      "Cookie: sess}ion=123",
+      "Cookie: sess;ion=123",
+      "Cookie: sess,ion=123",
+      "Cookie: sess\"ion=123",
+      "Cookie: sess\\ion=123",
+      "Cookie: sess(ion=123"})
+  public void testInvalidCookieValue(final String invalidCookieHeader)
+      throws IOException, InterruptedException {
+    try (Socket socket = new Socket("127.0.0.1", PORT)) {
+      socket.setSoTimeout(10_000);
+      String request = """
+          GET /echo HTTP/1.1
+          Host: 127.0.0.1
+          User-Agent: MyApp/1.0
+          Accept: application/json
+          %s
+          Connection: close
+          
+          """.formatted(invalidCookieHeader);
+      socket.getOutputStream().write(httpFriendly(request).getBytes(Constants.DEFAULT_CHARSET));
+      Thread.sleep(500); // wait until server reacts
+      BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+      String response = reader.readAllAsString();
+      assertEqualsHttpFriendly("""
+          HTTP/1.1 400 Bad Request
+          content-type: text/plain; charset=UTF-8
+          cache-control: no-store
+          content-length: 14
+          
+          Invalid cookie""", response);
 
       assertStreamEnded(socket);
     }
