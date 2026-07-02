@@ -3,8 +3,8 @@ package com.demo.web;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.demo.container.Container;
-import com.demo.web.bootstrap.WebContainerBootstrap;
-import com.demo.web.config.DefaultWebConfig;
+import com.demo.web.config.WebContainerConfig;
+import com.demo.web.config.DefaultWebServerConfig;
 import com.demo.web.runner.ServerRunner;
 import java.io.IOException;
 import java.net.http.HttpClient;
@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.NonNull;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -34,8 +33,8 @@ public class WebTest {
   @BeforeAll
   public static void startServer() {
     container = WebContainer.init(
-        WebContainerBootstrap.builder().source(WebTest.class)
-            .decorators(Map.of(DefaultWebConfig.class, Mockito::spy))
+        WebContainerConfig.builder().source(WebTest.class)
+            .decorators(Map.of(DefaultWebServerConfig.class, Mockito::spy))
             .profiles(Set.of("enableStaticFiles")).build());
     var serverRunner = container.getInstance(ServerRunner.class);
     new Thread(() -> {

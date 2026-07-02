@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
 
 import com.demo.web.WebTest;
-import com.demo.web.config.DefaultWebConfig;
+import com.demo.web.config.DefaultWebServerConfig;
 import com.demo.web.util.Constants;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,7 +13,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.NonNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,7 +26,7 @@ public class ProtocolTest extends WebTest {
 
   @BeforeAll
   public static void setUpConfigs() {
-    var defaultConfig = getComponent(DefaultWebConfig.class);
+    var defaultConfig = getComponent(DefaultWebServerConfig.class);
     doReturn(MAX_BYTES_TO_READ).when(defaultConfig).getMaxBytesToRead();
     doReturn(MAX_IO_READ_TIME_MLS).when(defaultConfig).getMaxIOReadTimeMls();
   }

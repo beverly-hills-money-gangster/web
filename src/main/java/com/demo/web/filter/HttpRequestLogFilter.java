@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
+/**
+ * HTTP request logging filter. This is always the beginning of the chain.
+ */
 @Component
 public class HttpRequestLogFilter extends HttpRequestFilter {
 

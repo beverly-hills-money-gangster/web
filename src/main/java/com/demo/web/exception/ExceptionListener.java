@@ -3,6 +3,9 @@ package com.demo.web.exception;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Listens to unhandled exceptions
+ */
 public abstract class ExceptionListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExceptionListener.class);

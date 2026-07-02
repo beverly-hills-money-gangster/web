@@ -4,7 +4,7 @@ import com.demo.annotation.Component;
 import lombok.Getter;
 
 @Component
-public class DefaultWebConfig implements WebConfig {
+public class DefaultWebServerConfig implements WebServerConfig {
 
   @Getter
   private final int maxIOReadTimeMls = 5_000;

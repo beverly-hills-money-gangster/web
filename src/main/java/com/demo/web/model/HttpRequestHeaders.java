@@ -7,6 +7,9 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.NonNull;
 
+/**
+ * HTTP request-specific headers
+ */
 public class HttpRequestHeaders extends HttpHeaders {
 
   private static final CookieValidator COOKIE_VALIDATOR = new CookieValidator();
@@ -16,11 +19,14 @@ public class HttpRequestHeaders extends HttpHeaders {
   @Override
   public void add(@NonNull final String header, @NonNull final String value) {
     super.add(header, value);
-    if ("cookie".equals(header)) {
+    if ("cookie".equals(header)) { // if a cookie then add it
       addCookie(value);
     }
   }
 
+  /**
+   * Adds cookies to the request headers
+   */
   private void addCookie(String headerValue) {
     for (var cookieKeyPair : headerValue.split(";")) {
       var cookieKeyPairSplit = cookieKeyPair.split("=");

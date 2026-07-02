@@ -1,6 +1,6 @@
 package com.demo.web.config;
 
-public interface WebConfig {
+public interface WebServerConfig {
 
   int getMaxIOReadTimeMls();
 

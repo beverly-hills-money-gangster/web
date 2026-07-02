@@ -10,8 +10,11 @@ import java.util.Set;
 import lombok.NonNull;
 import lombok.ToString;
 
+/**
+ * Basic HTTP headers storage that is common for both responses and requests
+ */
 @ToString
-public class HttpHeaders {
+public abstract class HttpHeaders {
 
   private final Map<String, Set<String>> headers = new HashMap<>();
 

@@ -2,7 +2,7 @@ package com.demo.web;
 
 import com.demo.container.Container;
 import com.demo.container.ContainerInitializer;
-import com.demo.web.bootstrap.WebContainerBootstrap;
+import com.demo.web.config.WebContainerConfig;
 import java.util.Set;
 import lombok.NonNull;
 
@@ -13,14 +13,14 @@ import lombok.NonNull;
 // TODO add jitpack integration
 public class WebContainer {
 
-  public static Container init(final @NonNull WebContainerBootstrap bootstrap) {
+  public static Container init(final @NonNull WebContainerConfig bootstrap) {
     var initializer = new ContainerInitializer(bootstrap.getProfiles().toArray(String[]::new));
     bootstrap.getDecorators().forEach(initializer::addDecorator);
     return initializer.init(WebContainer.class, bootstrap.getSource());
   }
 
   public static Container init(final Class<?> source, Set<String> profiles) {
-    return init(WebContainerBootstrap.builder().source(source).profiles(profiles).build());
+    return init(WebContainerConfig.builder().source(source).profiles(profiles).build());
   }
 
 

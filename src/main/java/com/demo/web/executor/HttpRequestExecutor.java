@@ -1,6 +1,7 @@
 package com.demo.web.executor;
 
-import com.demo.web.exception.ExceptionResponseExecutor;
+import com.demo.web.exception.ExceptionListener;
+import com.demo.web.exception.ExceptionToResponseConverter;
 import com.demo.web.filter.HttpRequestFilter;
 import com.demo.web.filter.HttpRequestFilterChain;
 import com.demo.web.model.HttpRequest;
@@ -14,14 +15,20 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 
+/**
+ * Abstract HTTP request executor
+ */
 @RequiredArgsConstructor
 public abstract class HttpRequestExecutor {
 
-  private final ExceptionResponseExecutor exceptionResponseExecutor;
+  private final ExceptionToResponseConverter exceptionToResponseConverter;
 
   private final List<HttpRequestFilter> httpRequestFilters;
 
-  public final HttpResponse execute(final @NonNull HttpRequest request,
+  private final List<ExceptionListener> exceptionListeners;
+
+  public final HttpResponse execute(
+      final @NonNull HttpRequest request,
       final @NonNull String connectionId) {
     try {
       return executeImpl(() -> {
@@ -32,12 +39,16 @@ public abstract class HttpRequestExecutor {
           MDC.remove(Constants.MDC_CONNECTION_ID);
         }
       }).get();
-    } catch (ExecutionException e) {
-      return exceptionResponseExecutor.execute(e.getCause());
     } catch (Exception e) {
-      return exceptionResponseExecutor.execute(e);
+      exceptionListeners.forEach(listener -> listener.listen(e));
+      var exceptionToConvert = e instanceof ExecutionException ? e.getCause() : e;
+      return exceptionToResponseConverter.apply(exceptionToConvert);
     }
   }
 
+  /**
+   * Defines how request handling logic has to be executed.
+   * For example, one request -> one thread, or one request -> virtual thread.
+   */
   protected abstract Future<HttpResponse> executeImpl(Callable<HttpResponse> callable);
 }

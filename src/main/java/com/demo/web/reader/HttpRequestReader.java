@@ -8,9 +8,8 @@ import static com.demo.web.util.Constants.HTTP_1_1;
 import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
 import com.demo.annotation.Component;
-import com.demo.web.config.WebConfig;
+import com.demo.web.config.WebServerConfig;
 import com.demo.web.exception.HTTPProtocolException;
-import com.demo.web.model.HttpHeaders;
 import com.demo.web.model.HttpMethod;
 import com.demo.web.model.HttpRequest;
 import com.demo.web.model.HttpRequestHeaders;
@@ -41,11 +40,11 @@ public class HttpRequestReader implements Reader<HttpRequest> {
 
   private static final Logger LOG = LoggerFactory.getLogger(HttpRequestReader.class);
   private final ContentLenHttpHeaderValidator contentLenHttpHeaderValidator;
-  private final WebConfig webConfig;
+  private final WebServerConfig webServerConfig;
 
   @Override
   public HttpRequest read(final InputStream inputStream) throws HTTPProtocolException {
-    var limitedStream = new LimitedInputStream(inputStream, webConfig.getMaxBytesToRead());
+    var limitedStream = new LimitedInputStream(inputStream, webServerConfig.getMaxBytesToRead());
     try {
       var builder = HttpRequest.builder();
       var headers = new HttpRequestHeaders();
@@ -123,7 +122,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     int b;
     long startTimeMls = System.currentTimeMillis();
     while ((b = in.read()) != -1) {
-      if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
+      if (System.currentTimeMillis() - startTimeMls > webServerConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
         throw new HTTPProtocolException("Read time-out", HttpResponseCode.REQUEST_TIMEOUT);
       }
@@ -144,7 +143,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
     var byteArrayOutputStream = new ByteArrayOutputStream();
     long startTimeMls = System.currentTimeMillis();
     for (int i = 0; i < contentLen; i++) {
-      if (System.currentTimeMillis() - startTimeMls > webConfig.getMaxIOReadTimeMls()) {
+      if (System.currentTimeMillis() - startTimeMls > webServerConfig.getMaxIOReadTimeMls()) {
         // this might happen if producer is too slow
         throw new HTTPProtocolException("Request body read time-out",
             HttpResponseCode.REQUEST_TIMEOUT);

@@ -7,6 +7,9 @@ import com.demo.web.registry.HttpControllerRegistry;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Main HTTP request filter. This is the bottom of the filter chain.
+ */
 @Component
 @RequiredArgsConstructor
 public class HttpRequestHandleFilter extends HttpRequestFilter {

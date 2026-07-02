@@ -1,7 +1,8 @@
 package com.demo.web.executor;
 
 import com.demo.annotation.Component;
-import com.demo.web.exception.ExceptionResponseExecutor;
+import com.demo.web.exception.ExceptionListener;
+import com.demo.web.exception.ExceptionToResponseConverter;
 import com.demo.web.filter.HttpRequestFilter;
 import com.demo.web.model.HttpResponse;
 import java.io.Closeable;
@@ -15,6 +16,9 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Default thread pool implementation of HTTP request executor
+ */
 @Component
 public class ThreadPoolHttpRequestExecutor extends HttpRequestExecutor implements Closeable {
 
@@ -29,9 +33,10 @@ public class ThreadPoolHttpRequestExecutor extends HttpRequestExecutor implement
           .build());
 
   public ThreadPoolHttpRequestExecutor(
-      ExceptionResponseExecutor exceptionResponseExecutor,
-      List<HttpRequestFilter> httpRequestFilters) {
-    super(exceptionResponseExecutor, httpRequestFilters);
+      ExceptionToResponseConverter exceptionToResponseConverter,
+      List<HttpRequestFilter> httpRequestFilters,
+      List<ExceptionListener> exceptionListeners) {
+    super(exceptionToResponseConverter, httpRequestFilters, exceptionListeners);
   }
 
 

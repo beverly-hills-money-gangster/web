@@ -3,6 +3,9 @@ package com.demo.web.factory;
 import com.demo.annotation.Component;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Returns default JSON object mapper implementation
+ */
 @Component
 public class DefaultObjectMapperFactory implements ObjectMapperFactory {
 

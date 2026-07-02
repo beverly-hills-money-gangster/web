@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 
+/**
+ * HTTP response body in a form of a stream. InputStream is used so we don't have to copy binary
+ * data from-to heap if big files are processed. The stream is to be closed by the calling side.
+ */
 @Builder
 @Getter
 public class HttpResponseBody implements Closeable {

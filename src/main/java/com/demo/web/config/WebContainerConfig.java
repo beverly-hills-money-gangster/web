@@ -1,4 +1,4 @@
-package com.demo.web.bootstrap;
+package com.demo.web.config;
 
 import com.demo.decorator.Decorator;
 import java.util.HashMap;
@@ -11,7 +11,7 @@ import lombok.NonNull;
 
 @Getter
 @Builder
-public class WebContainerBootstrap {
+public class WebContainerConfig {
 
   @NonNull
   private final Class<?> source;

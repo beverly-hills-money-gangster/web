@@ -4,6 +4,9 @@ import com.demo.web.model.HttpResponseCode;
 import lombok.Getter;
 import lombok.NonNull;
 
+/**
+ * HTTP protocol exception. Carries an exception message + HTTP status(404, 503, etc)
+ */
 public class HTTPProtocolException extends RuntimeException {
 
   @NonNull

@@ -2,7 +2,6 @@ package com.demo.web.model;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.experimental.Delegate;
 
 @Getter
 @Builder

@@ -27,6 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * Content-specific HTTP response factory
+ */
 @Component
 @RequiredArgsConstructor
 public class HttpResponseFactory {
@@ -111,11 +114,13 @@ public class HttpResponseFactory {
     var fullFileName = "/static/" + fileName;
     InputStream in = null;
     try {
+      // get the resource
       URL url = HttpResponseFactory.class.getResource(fullFileName);
       if (url == null) {
         return text("File %s not found".formatted(fullFileName), HttpResponseCode.NOT_FOUND);
       }
       var conn = url.openConnection();
+      // get content length
       long contentLength = conn.getContentLengthLong();
       if (contentLength < 0) {
         return text("Can't read file %s. Invalid metadata.".formatted(fullFileName),
@@ -127,6 +132,7 @@ public class HttpResponseFactory {
         return text("File %s not found".formatted(fullFileName), HttpResponseCode.NOT_FOUND);
       }
       var headers = new HttpResponseHeaders();
+      // get content type
       var contentType = HttpContentType.get(URLConnection.guessContentTypeFromName(fullFileName));
       headers.addContentType(contentType.orElseThrow(() -> new HTTPProtocolException(
           "Can't get content type for file %s".formatted(fullFileName),

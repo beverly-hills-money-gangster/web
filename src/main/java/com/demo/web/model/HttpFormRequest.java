@@ -6,6 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
 
+/**
+ * Content-specific HTTP request that stores form data
+ */
 @RequiredArgsConstructor
 public class HttpFormRequest {
 

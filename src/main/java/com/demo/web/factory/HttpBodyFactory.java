@@ -4,6 +4,9 @@ import com.demo.annotation.Component;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Delegate;
 
+/**
+ * Request-response body factory
+ */
 @Component
 @RequiredArgsConstructor
 public class HttpBodyFactory {

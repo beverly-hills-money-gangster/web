@@ -1,12 +1,12 @@
 package com.demo.web.runner;
 
 import com.demo.annotation.Component;
-import com.demo.web.config.WebConfig;
+import com.demo.web.config.WebServerConfig;
 import com.demo.web.exception.ExceptionListener;
-import com.demo.web.exception.ExceptionResponseExecutor;
+import com.demo.web.exception.ExceptionToResponseConverter;
 import com.demo.web.exception.HTTPProtocolException;
 import com.demo.web.executor.HttpRequestExecutor;
-import com.demo.web.executor.SocketExecutor;
+import com.demo.web.executor.IOExecutor;
 import com.demo.web.model.HttpRequest;
 import com.demo.web.reader.HttpRequestReader;
 import com.demo.web.validation.PortValidator;
@@ -31,14 +31,14 @@ public class ServerRunner implements Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServerRunner.class);
 
-  private final SocketExecutor socketExecutor;
+  private final IOExecutor IOExecutor;
   private final HttpRequestReader httpRequestReader;
   private final HttpResponseWriter httpResponseWriter;
   private final HttpRequestExecutor httpRequestExecutor;
   private final PortValidator portValidator;
-  private final WebConfig webConfig;
+  private final WebServerConfig webServerConfig;
   private final List<ExceptionListener> exceptionListeners;
-  private final ExceptionResponseExecutor exceptionResponseExecutor;
+  private final ExceptionToResponseConverter exceptionToResponseConverter;
 
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final AtomicBoolean started = new AtomicBoolean(false);
@@ -56,10 +56,10 @@ public class ServerRunner implements Closeable {
       LOG.info("Server start {}", serverSocket);
       while (!closed.get()) {
         var clientSocket = serverSocket.accept();
-        socketExecutor.execute(clientSocket, socket -> {
+        IOExecutor.execute(clientSocket, socket -> {
           var connectionId = UUID.randomUUID().toString();
           try (socket) {
-            socket.setSoTimeout(webConfig.getMaxIOReadTimeMls());
+            socket.setSoTimeout(webServerConfig.getMaxIOReadTimeMls());
             LOG.debug("Accepted {}", socket);
             var out = socket.getOutputStream();
             boolean keepReading = true;
@@ -68,8 +68,8 @@ public class ServerRunner implements Closeable {
               try {
                 request = httpRequestReader.read(socket.getInputStream());
               } catch (HTTPProtocolException e) {
-                httpResponseWriter.write(out, exceptionResponseExecutor.execute(e));
-                break;
+                httpResponseWriter.write(out, exceptionToResponseConverter.apply(e));
+                throw e;
               }
               if (request == null) {
                 LOG.debug("No request read {}", socket);

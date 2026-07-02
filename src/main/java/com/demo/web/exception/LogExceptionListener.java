@@ -4,6 +4,9 @@ import com.demo.annotation.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Basic logging exception listener
+ */
 @Component
 public class LogExceptionListener extends ExceptionListener {
 

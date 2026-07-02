@@ -11,6 +11,9 @@ import java.util.HashMap;
 import lombok.RequiredArgsConstructor;
 
 
+/**
+ * Request factory. Turns basic HTTP requests to content-specific
+ */
 @Component
 @RequiredArgsConstructor
 public class HttpRequestFactory {

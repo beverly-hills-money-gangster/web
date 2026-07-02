@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -18,6 +17,7 @@ public class RequestURI {
   @Getter
   private final String baseURI;
 
+  // URI request params. Such as ?key=value&test=abc
   private final Map<String, String> params;
 
   public RequestURI(final @NonNull String uri) {
