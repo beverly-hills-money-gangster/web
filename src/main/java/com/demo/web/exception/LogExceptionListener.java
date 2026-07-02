@@ -1,6 +1,7 @@
 package com.demo.web.exception;
 
 import com.demo.annotation.Component;
+import java.net.SocketTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,10 @@ public class LogExceptionListener extends ExceptionListener {
 
   @Override
   protected void listenImpl(Throwable e) {
-    LOG.error("Exception occurred", e);
+    if (e instanceof SocketTimeoutException) {
+      LOG.debug("Timeout", e);
+    } else {
+      LOG.error("Exception occurred", e);
+    }
   }
 }

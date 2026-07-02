@@ -14,8 +14,8 @@ import com.demo.web.writer.HttpResponseWriter;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,13 +25,22 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Web-server runner. Execution is split into 2 workloads: IO and request handling.
+ * <p>
+ * By default, IO workload(read request, write response) is taken care by virtual threads. No
+ * pinning and CPU work to be executed here.
+ * <p>
+ * Request handling, unlike IO, is processed by a classic fixed thread pool as client code may
+ * include CPU-heavy logic or pinning.
+ */
 @Component
 @RequiredArgsConstructor
 public class ServerRunner implements Closeable {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServerRunner.class);
 
-  private final IOExecutor IOExecutor;
+  private final IOExecutor ioExecutor;
   private final HttpRequestReader httpRequestReader;
   private final HttpResponseWriter httpResponseWriter;
   private final HttpRequestExecutor httpRequestExecutor;
@@ -44,6 +53,9 @@ public class ServerRunner implements Closeable {
   private final AtomicBoolean started = new AtomicBoolean(false);
   private final AtomicReference<ServerSocket> serverSocketReference = new AtomicReference<>();
 
+  /**
+   * Runs a web-server. Blocks until closed.
+   */
   public void start(int port) throws IOException {
     if (closed.get()) {
       throw new IllegalStateException("Can't start closed server runner");
@@ -55,38 +67,8 @@ public class ServerRunner implements Closeable {
       serverSocketReference.set(serverSocket);
       LOG.info("Server start {}", serverSocket);
       while (!closed.get()) {
-        var clientSocket = serverSocket.accept();
-        IOExecutor.execute(clientSocket, socket -> {
-          var connectionId = UUID.randomUUID().toString();
-          try (socket) {
-            socket.setSoTimeout(webServerConfig.getMaxIOReadTimeMls());
-            LOG.debug("Accepted {}", socket);
-            var out = socket.getOutputStream();
-            boolean keepReading = true;
-            while (keepReading) {
-              HttpRequest request;
-              try {
-                request = httpRequestReader.read(socket.getInputStream());
-              } catch (HTTPProtocolException e) {
-                httpResponseWriter.write(out, exceptionToResponseConverter.apply(e));
-                throw e;
-              }
-              if (request == null) {
-                LOG.debug("No request read {}", socket);
-                return;
-              }
-              keepReading = request.isKeepAlive();
-              httpResponseWriter.write(out, httpRequestExecutor.execute(request, connectionId));
-              LOG.debug("Keep reading {}", socket);
-            }
-          } catch (SocketTimeoutException timeoutException) {
-            LOG.debug("Read timeout for socket {}", clientSocket, timeoutException);
-          } catch (Exception e) {
-            exceptionListeners.forEach(listener -> listener.listen(e));
-          } finally {
-            LOG.debug("Close connection {}", socket);
-          }
-        });
+        // accept a socket and execute
+        execute(serverSocket.accept());
       }
     } catch (SocketException e) {
       if (!closed.get()) {
@@ -94,6 +76,40 @@ public class ServerRunner implements Closeable {
       }
     }
     LOG.info("Server {} stop", port);
+  }
+
+  private void execute(final Socket clientSocket) {
+    // make sure no pinning is happening here
+    ioExecutor.execute(clientSocket, socket -> {
+      var connectionId = UUID.randomUUID().toString();
+      try (socket) {
+        socket.setSoTimeout(webServerConfig.getMaxIOReadTimeMls());
+        LOG.debug("Accepted {}", socket);
+        var out = socket.getOutputStream();
+        boolean keepReading = true;
+        while (keepReading) {
+          HttpRequest request;
+          try {
+            request = httpRequestReader.read(socket.getInputStream());
+          } catch (HTTPProtocolException e) {
+            httpResponseWriter.write(out, exceptionToResponseConverter.apply(e));
+            throw e;
+          }
+          if (request == null) {
+            LOG.debug("No request read {}", socket);
+            return;
+          }
+          keepReading = request.isKeepAlive();
+          // processes the request and send the response back to the socket
+          httpResponseWriter.write(out, httpRequestExecutor.execute(request, connectionId));
+          LOG.debug("Keep reading {}", socket);
+        }
+      } catch (Exception e) {
+        exceptionListeners.forEach(listener -> listener.listen(e));
+      } finally {
+        LOG.debug("Close connection {}", socket);
+      }
+    });
   }
 
   @Override

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-public class HttpRequestHandlersValidator implements Validator<List<HttpRequestController>> {
+public class HttpControllerValidator implements Validator<List<HttpRequestController>> {
 
   @Override
   public void validate(List<HttpRequestController> handlersToValidate) {

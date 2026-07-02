@@ -3,7 +3,6 @@ package com.demo.web.reader;
 import static com.demo.web.util.Constants.BODY_METHODS;
 import static com.demo.web.util.Constants.CONNECTION_HEADER;
 import static com.demo.web.util.Constants.CONTENT_LEN_HEADER;
-import static com.demo.web.util.Constants.DEFAULT_CHARSET;
 import static com.demo.web.util.Constants.HTTP_1_1;
 import static com.demo.web.util.Constants.START_LINE_ELEMENTS;
 
@@ -16,8 +15,6 @@ import com.demo.web.model.HttpRequestHeaders;
 import com.demo.web.model.HttpResponseCode;
 import com.demo.web.model.RequestURI;
 import com.demo.web.validation.ContentLenHttpHeaderValidator;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.util.Arrays;
@@ -31,20 +28,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
+/**
+ * Low-level HTTP request reader. It takes socket input stream and reads into HttpRequest object
+ */
 @Component
 @RequiredArgsConstructor
 public class HttpRequestReader implements Reader<HttpRequest> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(HttpRequestReader.class);
   private static final Set<String> SUPPORTED_METHODS
       = Arrays.stream(HttpMethod.values()).map(Enum::name).collect(Collectors.toSet());
 
-  private static final Logger LOG = LoggerFactory.getLogger(HttpRequestReader.class);
+
   private final ContentLenHttpHeaderValidator contentLenHttpHeaderValidator;
   private final WebServerConfig webServerConfig;
 
+  /**
+   * Reads socket input stream into HttpRequest object
+   */
   @Override
   public HttpRequest read(final InputStream inputStream) throws HTTPProtocolException {
-    var limitedStream = new LimitedInputStream(inputStream, webServerConfig.getMaxBytesToRead());
+    var limitedStream = HTTPLimitedInputStream.builder().inputStream(inputStream)
+        .maxBytesToRead(webServerConfig.getMaxBytesToRead())
+        .maxIOReadTimeMls(webServerConfig.getMaxIOReadTimeMls()).build();
     try {
       var builder = HttpRequest.builder();
       var headers = new HttpRequestHeaders();
@@ -53,7 +59,7 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       int linesRead = 0;
       HttpMethod method = null;
       // TODO why 2 TCP connections open and one of them is empty?
-      while ((line = readLine(limitedStream)) != null) {
+      while ((line = limitedStream.readLine()) != null) {
         linesRead++;
         if (StringUtils.isBlank(line)) {
           break;
@@ -97,59 +103,22 @@ public class HttpRequestReader implements Reader<HttpRequest> {
       if (BODY_METHODS.contains(method)) {
         contentLenHttpHeaderValidator.validate(headers);
         int contentLen = headers.getOne(CONTENT_LEN_HEADER).map(Integer::parseInt).get();
-        builder.body(readBody(contentLen, limitedStream));
+        builder.body(limitedStream.readRemainingBytes(contentLen));
       }
       builder.keepAlive(
           headers.getOne(CONNECTION_HEADER).map(s -> !"close".equals(s)).orElse(true));
       LOG.debug("Bytes read {}", limitedStream.getBytesRead());
       return builder.build();
-    } catch (HTTPProtocolException e) {
-      throw e;
-    } catch (IllegalArgumentException e) {
-      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
-          e, HttpResponseCode.BAD_REQUEST);
-    } catch (SocketTimeoutException e) {
-      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
-          e, HttpResponseCode.REQUEST_TIMEOUT);
     } catch (Exception e) {
-      throw new HTTPProtocolException(Objects.toString(e.getMessage(), "Error occurred"),
-          e, HttpResponseCode.INTERNAL_SERVER_ERROR);
+      if (e instanceof HTTPProtocolException protocolException) {
+        throw protocolException;
+      }
+      var message = Objects.toString(e.getMessage(), "Error occurred");
+      var responseCode = e instanceof IllegalArgumentException ? HttpResponseCode.BAD_REQUEST :
+          e instanceof SocketTimeoutException ? HttpResponseCode.REQUEST_TIMEOUT
+              : HttpResponseCode.INTERNAL_SERVER_ERROR;
+      throw new HTTPProtocolException(message, e, responseCode);
     }
   }
 
-  private String readLine(LimitedInputStream in) throws IOException {
-    var byteArrayOutputStream = new ByteArrayOutputStream();
-    int b;
-    long startTimeMls = System.currentTimeMillis();
-    while ((b = in.read()) != -1) {
-      if (System.currentTimeMillis() - startTimeMls > webServerConfig.getMaxIOReadTimeMls()) {
-        // this might happen if producer is too slow
-        throw new HTTPProtocolException("Read time-out", HttpResponseCode.REQUEST_TIMEOUT);
-      }
-      if (b == '\r') {
-        continue;
-      } else if (b == '\n') {
-        break;
-      }
-      byteArrayOutputStream.write(b);
-    }
-
-    return byteArrayOutputStream.size() == 0
-        ? null
-        : byteArrayOutputStream.toString(DEFAULT_CHARSET);
-  }
-
-  private String readBody(int contentLen, LimitedInputStream in) throws IOException {
-    var byteArrayOutputStream = new ByteArrayOutputStream();
-    long startTimeMls = System.currentTimeMillis();
-    for (int i = 0; i < contentLen; i++) {
-      if (System.currentTimeMillis() - startTimeMls > webServerConfig.getMaxIOReadTimeMls()) {
-        // this might happen if producer is too slow
-        throw new HTTPProtocolException("Request body read time-out",
-            HttpResponseCode.REQUEST_TIMEOUT);
-      }
-      byteArrayOutputStream.write((byte) in.read());
-    }
-    return byteArrayOutputStream.toString(DEFAULT_CHARSET);
-  }
 }

@@ -4,6 +4,9 @@ import com.demo.web.runner.ServerRunner;
 import java.io.IOException;
 import java.util.Set;
 
+/**
+ * Sample server runner
+ */
 public class Main {
 
   static void main() throws IOException {

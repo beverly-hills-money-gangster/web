@@ -12,18 +12,15 @@ public class CookieValidator {
   public void validate(final @NonNull String name, final @NonNull String value) {
     if (StringUtils.isBlank(name)) {
       throw new IllegalArgumentException("Blank cookie");
-    } else if (containsInvalidChar(name)) {
-      throw new IllegalArgumentException("Invalid cookie");
-    } else if (containsInvalidChar(value)) {
+    } else if (containsInvalidChar(name) || containsInvalidChar(value)) {
       throw new IllegalArgumentException("Invalid cookie");
     }
   }
 
-  private boolean containsInvalidChar(String text) {
+  private boolean containsInvalidChar(final String text) {
     for (String invalidChar : INVALID_CHARS) {
       if (text.contains(invalidChar)) {
         return true;
-
       }
     }
     return false;

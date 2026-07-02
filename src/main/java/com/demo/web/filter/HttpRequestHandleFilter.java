@@ -21,7 +21,7 @@ public class HttpRequestHandleFilter extends HttpRequestFilter {
 
   @Override
   public HttpResponse filter(HttpRequest request, HttpRequestFilterChain chain) {
-    var handler = httpControllerRegistry.getHandler(request);
+    var handler = httpControllerRegistry.getController(request);
     return switch (request.getMethod()) {
       case GET -> handler.onGet(request);
       case PUT -> handler.onPut(request);

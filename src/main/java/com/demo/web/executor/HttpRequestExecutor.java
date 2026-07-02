@@ -47,8 +47,8 @@ public abstract class HttpRequestExecutor {
   }
 
   /**
-   * Defines how request handling logic has to be executed.
-   * For example, one request -> one thread, or one request -> virtual thread.
+   * Defines how request handling logic has to be executed. For example, one request -> one thread,
+   * or one request -> virtual thread.
    */
   protected abstract Future<HttpResponse> executeImpl(Callable<HttpResponse> callable);
 }
