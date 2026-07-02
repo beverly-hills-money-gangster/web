@@ -1,4 +1,5 @@
 # Web — Simple Ultra-Lightweight Web-Server And Web-Framework
+[![](https://jitpack.io/v/beverly-hills-money-gangster/web.svg)](https://jitpack.io/#beverly-hills-money-gangster/web)
 
 A lightweight HTTP/1.1 web framework for Java 25+, built on top of
 the [ioc](https://github.com/beverly-hills-money-gangster/ioc) dependency injection framework.
