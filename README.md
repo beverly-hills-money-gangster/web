@@ -1,4 +1,4 @@
-# Web
+# Web — Simple Ultra-Lightweight Web-Server And Web-Framework
 
 A lightweight HTTP/1.1 web framework for Java 25+, built on top of
 the [ioc](https://github.com/beverly-hills-money-gangster/ioc) dependency injection framework.
